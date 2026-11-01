@@ -1,6 +1,14 @@
 import { useState } from 'react'
 import { supabase } from './supabase'
 
+function mensagemDeErro(error) {
+  const m = (error.message || '').toLowerCase()
+  if (m.includes('invalid login credentials')) return 'E-mail ou senha incorretos.'
+  if (m.includes('not confirmed')) return 'Seu e-mail ainda não foi confirmado. Fale com a Conex.'
+  if (m.includes('fetch') || m.includes('network') || error.status === 0) return 'Sem conexão com o servidor. Tente de novo em instantes.'
+  return 'Não foi possível entrar. Tente de novo.'
+}
+
 export default function Login() {
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
@@ -13,7 +21,7 @@ export default function Login() {
     setEnviando(true)
     const { error } = await supabase.auth.signInWithPassword({ email, password: senha })
     setEnviando(false)
-    if (error) setErro('E-mail ou senha incorretos.')
+    if (error) setErro(mensagemDeErro(error))
   }
 
   return (
