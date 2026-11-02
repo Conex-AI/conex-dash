@@ -9,6 +9,7 @@ import { Foto } from './components/Foto'
 import { Esqueleto } from './components/Ui'
 import { Marca } from './components/Marca'
 import { useTema } from './lib/tema'
+import { useGaveta } from './lib/gaveta'
 import { preCarregar, useCarregandoAlgo, queryClient } from './lib/consultas'
 import { usePeriodo } from './components/Periodo'
 
@@ -54,6 +55,7 @@ export default function App() {
   const [clienteId, setClienteId] = useState(null)
   const [rota, ir] = useRota()
   const [tema, setTema] = useTema()
+  const gaveta = useGaveta()
   const periodo = usePeriodo()
   const carregando = useCarregandoAlgo()
   const [erro, setErro] = useState('')
@@ -137,13 +139,14 @@ export default function App() {
   const cliente = clientes.find((c) => c.id === clienteId)
   const abas = ABAS.filter((a) => !a.soAdmin || admin)
   const aba = rota.aba === 'clientes' && !admin ? 'dashboard' : rota.aba
-  const irPara = (novaAba) => ir(novaAba, cliente?.slug)
+  const irPara = (novaAba) => { gaveta.fechar(); ir(novaAba, cliente?.slug) }
 
   function escolherCliente(id, novaAba = aba) {
     const c = clientes.find((x) => x.id === id)
     setClienteId(id)
     gravarSalvo('conex.cliente', id)
     if (c) ir(novaAba, c.slug)
+    gaveta.fechar()
   }
   async function sair() {
     if (!DEMO) await supabase.auth.signOut()
@@ -151,7 +154,30 @@ export default function App() {
 
   return (
     <div className="app">
-      <aside className="side">
+      <header className="topo-movel">
+        <button className="topo-botao" onClick={() => gaveta.abrir('esq')} aria-label="Abrir menu" aria-expanded={gaveta.aberto} aria-controls="menu-principal">
+          <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M4 6.5h14M4 11h14M4 15.5h9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+        </button>
+        <a className="topo-marca" href={endereco('dashboard', cliente?.slug)} aria-label="Conex Dash, ir para o Dashboard"
+          onClick={(e) => { if (cliqueInterno(e)) { e.preventDefault(); irPara('dashboard') } }}>
+          <Marca altura={26} />
+        </a>
+        {cliente ? (
+          <a className="topo-botao" href={endereco('perfil', cliente.slug)} aria-label="Meu perfil"
+            onClick={(e) => { if (cliqueInterno(e)) { e.preventDefault(); irPara('perfil') } }}>
+            <Foto cliente={cliente} />
+          </a>
+        ) : <span className="topo-botao" />}
+      </header>
+
+      <div className={`veu ${gaveta.movel && gaveta.aberto ? 'ativo' : ''}`} style={gaveta.estiloVeu} onClick={gaveta.fechar} aria-hidden="true" />
+
+      <aside id="menu-principal" className={`side ${gaveta.lado} ${gaveta.aberto ? 'aberto' : ''}`} style={gaveta.estiloGaveta}
+        aria-hidden={gaveta.movel && !gaveta.aberto && !gaveta.arrastando ? true : undefined}
+        inert={gaveta.movel && !gaveta.aberto && !gaveta.arrastando ? '' : undefined}>
+        <button className="side-fechar" onClick={gaveta.fechar} aria-label="Fechar menu">
+          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M4.5 4.5l9 9M13.5 4.5l-9 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+        </button>
         <a className="marca" href={endereco('dashboard', cliente?.slug)} aria-label="Conex Dash, ir para o Dashboard"
           onClick={(e) => { if (cliqueInterno(e)) { e.preventDefault(); irPara('dashboard') } }}>
           <Marca altura={32} />

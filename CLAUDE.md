@@ -46,6 +46,7 @@ Todas prontas, no layout do protótipo (https://claude.ai/artifact/71fpWMs7942KS
 - Navegação por endereço (`src/lib/rota.js`): `/aba?cliente=slug`, cada troca de aba ou de cliente vai para o histórico (voltar do navegador e botões do mouse funcionam). Menu usa `<a href>`; nginx manda qualquer rota para o index.html.
 - Período (`src/components/Periodo.jsx`): 7/30/90 dias ou intervalo no calendário; compartilhado entre as abas (sessionStorage). Datas exibidas como "4 out → 2 nov"; ano só quando o intervalo cruza anos.
 - Blocos de métricas reaproveitados entre Dashboard e Métricas em `src/components/Blocos.jsx`. A tela Métricas reúne TODAS as métricas do painel (visão geral, atendimento, repasses, agendamento, horários, Pix, follow-up). Motivos do fluxo vêm como código (`comprovante_pix`) e são traduzidos por `rotuloMotivo`.
+- Celular (≤860px): barra no topo (menu, logo, foto → perfil) e menu em gaveta (`src/lib/gaveta.js`): abre pelo botão ou arrastando da borda esquerda ou direita (sai do lado puxado e segue o dedo); fecha arrastando, tocando fora, Esc ou ao escolher uma tela.
 - `VITE_DEMO=1` roda com dados fictícios (`src/demo.js`) para ver o visual sem login.
 - Mensagens de erro para o cliente final: simples, em português, sem jargão.
 - Mudanças de banco: sempre como SQL para o Vini rodar no SQL Editor; explicar o motivo.
