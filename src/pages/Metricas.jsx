@@ -76,7 +76,7 @@ export default function Metricas({ cliente }) {
                       <YAxis stroke="#9aa2b1" tickLine={false} axisLine={false} fontSize={12} domain={[0, 100]} unit="%" />
                       <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} formatter={(x) => [`${String(x).replace('.', ',')}%`, 'Sucesso']}
                         labelFormatter={(l) => `Semana de ${l}`}
-                        contentStyle={{ background: '#262a33', border: '1px solid #2f343f', borderRadius: 10, color: '#f2f4f8' }} />
+                        contentStyle={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text)' }} />
                       <Bar dataKey="taxa" fill="#3b7bff" radius={[6, 6, 0, 0]} maxBarSize={56} />
                     </BarChart>
                   </ResponsiveContainer>

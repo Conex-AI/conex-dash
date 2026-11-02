@@ -17,7 +17,7 @@ export async function carregarPerfil(userId) {
 export async function carregarClientes() {
   if (DEMO) return demoClientes
   const { data, error } = await supabase
-    .from('clientes').select('id, slug, nome, followup_ativo, ativo').order('nome')
+    .from('clientes').select('*').order('nome') // '*' para funcionar antes e depois da coluna foto_url
   if (error) throw error
   return data
 }
@@ -118,4 +118,41 @@ export async function redefinirSenha(email) {
   if (DEMO) return
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin })
   if (error) throw error
+}
+
+// ---------- Perfil ----------
+
+// Reduz a foto para 256x256 (recorte central) antes de enviar: fica leve e quadrada.
+async function prepararFoto(arquivo) {
+  const img = await createImageBitmap(arquivo)
+  const lado = Math.min(img.width, img.height)
+  const c = document.createElement('canvas')
+  c.width = 256; c.height = 256
+  c.getContext('2d').drawImage(img, (img.width - lado) / 2, (img.height - lado) / 2, lado, lado, 0, 0, 256, 256)
+  return new Promise((ok) => c.toBlob(ok, 'image/webp', 0.9))
+}
+
+export async function enviarFoto(clienteId, arquivo) {
+  const blob = await prepararFoto(arquivo)
+  if (DEMO) return URL.createObjectURL(blob)
+  const caminho = `${clienteId}/foto-${Date.now()}.webp`
+  const { error } = await supabase.storage.from('fotos').upload(caminho, blob, { contentType: 'image/webp', upsert: true })
+  if (error) throw error
+  const url = supabase.storage.from('fotos').getPublicUrl(caminho).data.publicUrl
+  await rpc('definir_foto_cliente', { p_cliente: clienteId, p_url: url })
+  return url
+}
+
+export async function removerFoto(clienteId) {
+  if (DEMO) return
+  await rpc('definir_foto_cliente', { p_cliente: clienteId, p_url: '' })
+}
+
+// Troca a senha confirmando a senha atual antes.
+export async function trocarSenha(email, atual, nova) {
+  if (DEMO) return
+  const { error: e1 } = await supabase.auth.signInWithPassword({ email, password: atual })
+  if (e1) throw new Error('A senha atual não confere.')
+  const { error } = await supabase.auth.updateUser({ password: nova })
+  if (error) throw new Error(error.message?.includes('different') ? 'A nova senha precisa ser diferente da atual.' : 'Não foi possível trocar a senha. Tente de novo.')
 }

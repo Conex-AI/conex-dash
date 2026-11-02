@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 // Cada troca de aba (ou de cliente, no admin) vira uma entrada no histórico,
 // então o botão voltar do navegador e os botões laterais do mouse funcionam.
 
-export const ABAS_VALIDAS = ['dashboard', 'conversas', 'metricas', 'pix', 'followup', 'clientes']
+export const ABAS_VALIDAS = ['dashboard', 'conversas', 'metricas', 'pix', 'followup', 'clientes', 'perfil']
 
 function ler() {
   const aba = window.location.pathname.replace(/^\/+|\/+$/g, '').split('/')[0]

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from './supabase'
+import { LogoCompleta } from './components/Marca'
 
 function mensagemDeErro(error) {
   const m = (error.message || '').toLowerCase()
@@ -27,7 +28,7 @@ export default function Login() {
   return (
     <div className="login-tela">
       <form className="login-card" onSubmit={entrar}>
-        <img src="/logo-conex.png" alt="Conex" />
+        <span className="logo-login"><LogoCompleta largura={170} /></span>
         <h1>Acompanhe seu atendimento</h1>
         <p className="sub">Entre com o e-mail e a senha que a Conex enviou.</p>
         <label htmlFor="email">E-mail</label>

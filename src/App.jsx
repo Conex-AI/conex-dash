@@ -10,6 +10,9 @@ import Pix from './pages/Pix'
 import Followup from './pages/Followup'
 import Clientes from './pages/Clientes'
 import NovaSenha from './NovaSenha'
+import Perfil, { Foto } from './pages/Perfil'
+import { Marca } from './components/Marca'
+import { useTema } from './lib/tema'
 import { useRota, endereco, cliqueInterno } from './lib/rota'
 
 const ABAS = [
@@ -21,10 +24,6 @@ const ABAS = [
   { id: 'clientes', nome: 'Clientes', soAdmin: true },
 ]
 
-function iniciais(nome = '') {
-  const p = nome.trim().split(/\s+/).filter(Boolean)
-  return ((p[0]?.[0] || '') + (p[1]?.[0] || p[0]?.[1] || '')).toUpperCase()
-}
 function lerSalvo(chave) {
   try { return localStorage.getItem(chave) } catch { return null }
 }
@@ -38,6 +37,7 @@ export default function App() {
   const [clientes, setClientes] = useState([])
   const [clienteId, setClienteId] = useState(null)
   const [rota, ir] = useRota()
+  const [tema, setTema] = useTema()
   const [erro, setErro] = useState('')
   const [recuperando, setRecuperando] = useState(false)
 
@@ -120,24 +120,25 @@ export default function App() {
   return (
     <div className="app">
       <aside className="side">
-        <div className="marca">
-          <img src="/logo-simbolo.png" alt="" />
-          <span>Conex Dash</span>
-        </div>
+        <a className="marca" href={endereco('dashboard', cliente?.slug)} aria-label="Conex Dash, ir para o Dashboard"
+          onClick={(e) => { if (cliqueInterno(e)) { e.preventDefault(); irPara('dashboard') } }}>
+          <Marca altura={32} />
+        </a>
 
         {cliente && (
           <div className="cliente-box">
-            <span className="campo-rotulo">Cliente</span>
-            <div className="cliente-sel">
-              <span className="avatar">{iniciais(cliente.nome)}</span>
-              {admin && clientes.length > 1 ? (
-                <select value={clienteId || ''} onChange={(e) => escolherCliente(e.target.value)} aria-label="Cliente">
-                  {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                </select>
-              ) : (
-                <strong style={{ fontSize: 14 }}>{cliente.nome}</strong>
-              )}
-            </div>
+            <a href={endereco('perfil', cliente.slug)} className={`perfil-btn ${aba === 'perfil' ? 'ativa' : ''}`}
+              aria-current={aba === 'perfil' ? 'page' : undefined}
+              onClick={(e) => { if (cliqueInterno(e)) { e.preventDefault(); irPara('perfil') } }}>
+              <Foto cliente={cliente} />
+              <span className="nome"><b>{cliente.nome}</b><em>Meu perfil</em></span>
+              <svg className="seta" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 L10.5 8 L6 12.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </a>
+            {admin && clientes.length > 1 && (
+              <select className="input troca-cliente" value={clienteId || ''} onChange={(e) => escolherCliente(e.target.value)} aria-label="Trocar de cliente">
+                {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+              </select>
+            )}
             {admin && <span className="campo-rotulo">Visão admin: {clientes.filter((c) => c.ativo).length} clientes ativos</span>}
           </div>
         )}
@@ -152,7 +153,6 @@ export default function App() {
         </nav>
 
         <div className="side-rodape">
-          <span className="usuario">{sessao.user.email}</span>
           <button className="btn-claro" onClick={sair}>Sair</button>
         </div>
       </aside>
@@ -165,6 +165,10 @@ export default function App() {
           <>
             {aba === 'dashboard' && <Dashboard cliente={cliente} irPara={irPara} />}
             {aba === 'conversas' && <Conversas cliente={cliente} />}
+            {aba === 'perfil' && (
+              <Perfil cliente={cliente} email={sessao.user.email} admin={admin} tema={tema} setTema={setTema} sair={sair}
+                onFoto={(url) => setClientes((l) => l.map((c) => (c.id === cliente.id ? { ...c, foto_url: url } : c)))} />
+            )}
             {aba === 'metricas' && <Metricas cliente={cliente} />}
             {aba === 'pix' && <Pix cliente={cliente} />}
             {aba === 'followup' && <Followup cliente={cliente} />}

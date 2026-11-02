@@ -12,7 +12,7 @@ const PERIODOS = [
   { id: 30, nome: '30 dias' },
   { id: 90, nome: '90 dias' },
 ]
-const COR = { azul: '#3b7bff', verde: '#2fbf71', vermelho: '#ef5b5b', cinza: '#4a5160' }
+const COR = { azul: '#3b7bff', verde: '#2fbf71', vermelho: '#ef5b5b', cinza: 'var(--neutral)' }
 
 function dataCurta(iso) {
   return new Date(iso + 'T12:00:00Z')
@@ -116,7 +116,7 @@ export default function Dashboard({ cliente, irPara }) {
                     <XAxis dataKey="rotulo" stroke="#9aa2b1" tickLine={false} axisLine={false} fontSize={12}
                       interval={Math.max(0, Math.floor(v.serie.length / 8) - 1)} />
                     <YAxis stroke="#9aa2b1" tickLine={false} axisLine={false} fontSize={12} allowDecimals={false} />
-                    <Tooltip contentStyle={{ background: '#262a33', border: '1px solid #2f343f', borderRadius: 10, color: '#f2f4f8' }} />
+                    <Tooltip contentStyle={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text)' }} />
                     <Line type="monotone" dataKey="Conversas" stroke={COR.azul} strokeWidth={2.5} dot={false} />
                     <Line type="monotone" dataKey="Confirmadas" stroke={COR.verde} strokeWidth={2.5} dot={false} />
                   </LineChart>

@@ -29,7 +29,7 @@ Views/funções: `v_conversas_resumo`, `v_conversoes` (conversão só conta se h
 - Funil: Contatos → Procedimento → Horário → Comprovante → Agendamento (cada pessoa conta uma vez; quem chegou longe conta nas etapas anteriores).
 
 ## Visual
-Tema dark grafite + azul Conex. Tokens em `src/theme.css`: fundo `#16181D`, cards `#1E2128`, azul `#0A57FC`. Não usar preto puro. Logo em `public/logo-conex.png` (fundo transparente).
+Tema escuro (padrão: grafite + azul Conex) e tema claro (`:root[data-theme="claro"]`), escolhidos no Perfil e salvos no navegador (`src/lib/tema.js`). Tokens em `src/theme.css`: fundo `#16181D`, cards `#1E2128`, azul `#0A57FC`. Não usar preto puro; cores sempre por variável (gráficos seguem o tema por CSS). Logo: `src/components/Marca.jsx`, vetorizada da logo oficial (símbolo + CONEX); "DASH" desenhado no mesmo traço. A parte preta usa `currentColor`.
 
 ## Estado das abas
 Todas prontas, no layout do protótipo (https://claude.ai/artifact/71fpWMs7942KSqvUNdiSHB, tema claro; o app usa os mesmos layouts com os tokens dark):
@@ -37,6 +37,7 @@ Todas prontas, no layout do protótipo (https://claude.ai/artifact/71fpWMs7942KS
 - Conversas → lista, chat (busca as 2000 mensagens mais recentes) e detalhes com linha do tempo; lê `mensagens` e `eventos_conversa`.
 - Métricas → `metricas_periodo` + `dashboard_periodo`; Pix → `pix_periodo`; Follow-up → `followup_periodo`; Clientes (só admin) → `clientes_resumo`, `admin_acessos`, `admin_vincular_acesso` (security definer, só admin), insert em `clientes` (policy `clientes_admin_insert`). Tudo em `sql/telas.sql`.
 - "Sinal solicitado" no Pix = mensagem da Jú que menciona Pix (não há evento próprio). Divergência de comprovante e sinais de incômodo do follow-up ainda não são registrados pelo fluxo.
+- Perfil (`/perfil`, botão com o nome do cliente no menu): foto do painel (Storage `fotos/<cliente_id>/`, `clientes.foto_url`, função `definir_foto_cliente`; SQL em `sql/perfil.sql`), tema claro/escuro e troca de senha (confere a atual antes).
 - Redefinir senha usa `resetPasswordForEmail`; o link volta ao app e abre `NovaSenha.jsx` (evento PASSWORD_RECOVERY). A URL do app precisa estar em Supabase › Authentication › URL Configuration.
 
 ## Convenções

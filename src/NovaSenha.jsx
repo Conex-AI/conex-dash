@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from './supabase'
+import { LogoCompleta } from './components/Marca'
 
 // Tela aberta pelo link "Redefinir senha" enviado por e-mail.
 export default function NovaSenha({ aoTerminar }) {
@@ -20,7 +21,7 @@ export default function NovaSenha({ aoTerminar }) {
   return (
     <div className="login-tela">
       <form className="login-card" onSubmit={salvar}>
-        <img src="/logo-conex.png" alt="Conex" />
+        <span className="logo-login"><LogoCompleta largura={170} /></span>
         <h1>Criar nova senha</h1>
         <label htmlFor="nova">Nova senha</label>
         <input id="nova" className="input" type="password" autoComplete="new-password" value={senha} onChange={(e) => setSenha(e.target.value)} />
