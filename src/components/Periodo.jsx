@@ -64,16 +64,6 @@ export function textoIntervalo(de, ate) {
   return de === ate ? f(x) : `${f(x)} – ${f(y)}`
 }
 
-function Data({ iso, ano }) {
-  const p = partes(iso)
-  return (
-    <span className="pdata">
-      <b>{p.d}</b>
-      <span><em>{MESES[p.m]}</em>{ano && <i>{p.a}</i>}</span>
-    </span>
-  )
-}
-
 function IconeCalendario() {
   return (
     <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true">
@@ -125,60 +115,47 @@ function Mes({ ref_, inicio, fim, passando, hoje, escolher, passar }) {
   )
 }
 
-function Calendario({ p, fechar }) {
+function Calendario({ p, voltar, fechar }) {
   const hoje = hojeSP()
   const [inicio, setInicio] = useState(p.de)
   const [fim, setFim] = useState(p.ate)
   const [passando, setPassando] = useState(null)
   const h = partes(p.ate)
-  const [direita, setDireita] = useState({ a: h.a, m: h.m })
-  const esquerda = mesAnterior(direita)
-  const ultimoMes = partes(hoje)
-  const podeAvancar = direita.a < ultimoMes.a || (direita.a === ultimoMes.a && direita.m < ultimoMes.m)
+  const [mes, setMes] = useState({ a: h.a, m: h.m })
+  const ultimo = partes(hoje)
+  const podeAvancar = mes.a < ultimo.a || (mes.a === ultimo.a && mes.m < ultimo.m)
 
   function escolher(dia) {
     if (!inicio || fim) { setInicio(dia); setFim(null); return }
     if (dia < inicio) { setFim(inicio); setInicio(dia) } else setFim(dia)
   }
-  function atalho(n) {
-    setInicio(somaDias(hoje, -(n - 1))); setFim(hoje)
-  }
-  function aplicar() {
-    p.setIntervalo(inicio, fim || inicio); fechar()
-  }
+  function aplicar() { p.setIntervalo(inicio, fim || inicio); fechar() }
   const de = inicio, ate = fim || inicio
 
   return (
-    <div className="cal" role="dialog" aria-label="Escolher período">
-      <div className="cal-atalhos">
-        {[['Hoje', 1], ['Últimos 7 dias', 7], ['Últimos 15 dias', 15], ['Últimos 30 dias', 30], ['Últimos 60 dias', 60], ['Últimos 90 dias', 90], ['Últimos 6 meses', 182], ['Último ano', 365]]
-          .map(([nome, n]) => <button key={n} type="button" onClick={() => atalho(n)}>{nome}</button>)}
+    <div className="cal-compacto">
+      <div className="cal-cab">
+        <button type="button" className="cal-seta" onClick={voltar} aria-label="Voltar às opções">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 L5.5 8 L10 12.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </button>
+        <span className="cal-resumo">{de ? textoIntervalo(de, ate) : 'Escolha as datas'}</span>
+        <span />
       </div>
-      <div className="cal-corpo">
-        <div className="cal-nav">
-          <button type="button" className="cal-seta" onClick={() => setDireita(esquerda)} aria-label="Mês anterior">
-            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 L5.5 8 L10 12.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          </button>
-          <button type="button" className="cal-seta" onClick={() => setDireita(mesSeguinte(direita))} disabled={!podeAvancar} aria-label="Próximo mês">
-            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 L10.5 8 L6 12.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          </button>
-        </div>
-        <div className="cal-meses" onMouseLeave={() => setPassando(null)}>
-          {[esquerda, direita].map((r) => (
-            <Mes key={`${r.a}-${r.m}`} ref_={r} inicio={inicio} fim={fim} passando={!fim ? passando : null}
-              hoje={hoje} escolher={escolher} passar={setPassando} />
-          ))}
-        </div>
-        <div className="cal-rodape">
-          <span>
-            {de ? <><b>{textoIntervalo(de, ate)}</b> · {diasEntre(de, ate)} {diasEntre(de, ate) === 1 ? 'dia' : 'dias'}</> : 'Escolha a data inicial'}
-            {de && !fim && <em> · agora escolha a data final</em>}
-          </span>
-          <span className="cal-botoes">
-            <button type="button" className="btn-claro" onClick={fechar}>Cancelar</button>
-            <button type="button" className="btn" onClick={aplicar} disabled={!de}>Aplicar</button>
-          </span>
-        </div>
+      <div className="cal-nav2">
+        <button type="button" className="cal-seta" onClick={() => setMes(mesAnterior(mes))} aria-label="Mês anterior">
+          <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 L5.5 8 L10 12.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </button>
+        <span className="cal-titulo">{MESES_LONGOS[mes.m]} {mes.a}</span>
+        <button type="button" className="cal-seta" onClick={() => setMes(mesSeguinte(mes))} disabled={!podeAvancar} aria-label="Próximo mês">
+          <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 L10.5 8 L6 12.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </button>
+      </div>
+      <div onMouseLeave={() => setPassando(null)}>
+        <Mes ref_={mes} inicio={inicio} fim={fim} passando={!fim ? passando : null} hoje={hoje} escolher={escolher} passar={setPassando} />
+      </div>
+      <div className="cal-rodape">
+        <span>{de && !fim ? 'Agora a data final' : de ? `${diasEntre(de, ate)} ${diasEntre(de, ate) === 1 ? 'dia' : 'dias'}` : ''}</span>
+        <button type="button" className="btn" onClick={aplicar} disabled={!de}>Aplicar</button>
       </div>
     </div>
   )
@@ -186,8 +163,8 @@ function Calendario({ p, fechar }) {
 
 export function SeletorPeriodo({ p }) {
   const [aberto, setAberto] = useState(false)
+  const [tela, setTela] = useState('opcoes') // opcoes | calendario
   const caixa = useRef(null)
-  const anos = partes(p.de).a !== partes(p.ate).a
 
   useEffect(() => {
     if (!aberto) return
@@ -198,28 +175,44 @@ export function SeletorPeriodo({ p }) {
     return () => { document.removeEventListener('mousedown', fora); document.removeEventListener('keydown', esc) }
   }, [aberto])
 
+  const rotulo = p.personalizado ? textoIntervalo(p.de, p.ate) : `Últimos ${p.dias} dias`
+  const detalhe = p.personalizado ? `${p.n} ${p.n === 1 ? 'dia' : 'dias'}` : textoIntervalo(p.de, p.ate)
+  function alternar() { setTela(p.personalizado ? 'calendario' : 'opcoes'); setAberto((v) => !v) }
+
   return (
     <div className="seletor-periodo" ref={caixa}>
-      <span className="pintervalo" aria-label={`Período: ${textoIntervalo(p.de, p.ate)}`}>
-        <Data iso={p.de} ano={anos} />
-        {p.de !== p.ate && (
-          <>
-            <svg className="pseta" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9.5M9 4.5 12.5 8 9 11.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            <Data iso={p.ate} ano={anos} />
-          </>
-        )}
-        <span className="pdias">{p.n} {p.n === 1 ? 'dia' : 'dias'}</span>
-      </span>
-      <div className="periodo">
-        {OPCOES.map((n) => (
-          <button key={n} className={p.dias === n ? 'ativa' : ''} onClick={() => p.setDias(n)}>{n} dias</button>
-        ))}
-        <button className={`periodo-cal ${p.personalizado || aberto ? 'ativa' : ''}`} onClick={() => setAberto((v) => !v)}
-          aria-expanded={aberto} aria-haspopup="dialog" title="Escolher datas">
-          <IconeCalendario />
-        </button>
-      </div>
-      {aberto && <Calendario p={p} fechar={() => setAberto(false)} />}
+      <button type="button" className={`periodo-botao ${aberto ? 'aberto' : ''}`} onClick={alternar}
+        aria-haspopup="dialog" aria-expanded={aberto} aria-label={`Período: ${rotulo}, ${detalhe}. Alterar`}>
+        <IconeCalendario />
+        <span className="periodo-txt"><b>{rotulo}</b><em>{detalhe}</em></span>
+        <svg className="periodo-seta" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      </button>
+      {aberto && (
+        <div className="periodo-pop" role="dialog" aria-label="Escolher período">
+          {tela === 'opcoes' ? (
+            <div className="periodo-opcoes">
+              {OPCOES.map((n) => (
+                <button key={n} type="button" className={!p.personalizado && p.dias === n ? 'ativa' : ''}
+                  onClick={() => { p.setDias(n); setAberto(false) }}>
+                  <span>Últimos {n} dias</span>
+                  {!p.personalizado && p.dias === n && <Check />}
+                </button>
+              ))}
+              <hr />
+              <button type="button" className={p.personalizado ? 'ativa' : ''} onClick={() => setTela('calendario')}>
+                <span>Escolher datas…</span>
+                {p.personalizado ? <Check /> : <IconeCalendario />}
+              </button>
+            </div>
+          ) : (
+            <Calendario p={p} voltar={() => setTela('opcoes')} fechar={() => setAberto(false)} />
+          )}
+        </div>
+      )}
     </div>
   )
+}
+
+function Check() {
+  return <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
 }
