@@ -74,34 +74,72 @@ revoke all on schema backup from public, anon, authenticated;
 alter table if exists public.backup_mensagens        set schema backup;
 alter table if exists public.backup_eventos_conversa set schema backup;
 
--- 3.1 Fazer backup agora (cria tabelas com data e hora no nome, ex.: mensagens_20261102_1445)
+-- Cada linha de mensagens/eventos tem a coluna cliente_id, então um backup sempre
+-- sabe de qual cliente é cada linha. Você pode fazer backup de todos de uma vez (3.1)
+-- ou só de um cliente (3.1b, com o slug no nome da tabela).
+
+-- 3.1 Backup de TODOS os clientes (nome: mensagens_todos_20261102_1445)
 do $$
 declare s text := to_char(now() at time zone 'America/Sao_Paulo', 'YYYYMMDD_HH24MI');
 begin
-  execute format('create table backup.%I as select * from public.mensagens', 'mensagens_' || s);
-  execute format('create table backup.%I as select * from public.eventos_conversa', 'eventos_' || s);
+  execute format('create table backup.%I as select * from public.mensagens', 'mensagens_todos_' || s);
+  execute format('create table backup.%I as select * from public.eventos_conversa', 'eventos_todos_' || s);
+  raise notice 'Backup criado: backup.mensagens_todos_% e backup.eventos_todos_%', s, s;
+end $$;
+
+-- 3.1b Backup de UM cliente (nome: mensagens_jubeauty_20261102_1445). Troque o slug na 1ª linha.
+do $$
+declare
+  v_slug text := 'jubeauty';
+  v_id   uuid := (select id from clientes where slug = v_slug);
+  s      text := v_slug || '_' || to_char(now() at time zone 'America/Sao_Paulo', 'YYYYMMDD_HH24MI');
+begin
+  if v_id is null then raise exception 'Cliente % não encontrado', v_slug; end if;
+  execute format('create table backup.%I as select * from public.mensagens where cliente_id = %L', 'mensagens_' || s, v_id);
+  execute format('create table backup.%I as select * from public.eventos_conversa where cliente_id = %L', 'eventos_' || s, v_id);
   raise notice 'Backup criado: backup.mensagens_% e backup.eventos_%', s, s;
 end $$;
 
--- 3.2 Ver os backups que existem (e quantas linhas cada um tem)
-select table_name,
-       (xpath('/row/n/text()', query_to_xml(format('select count(*) as n from backup.%I', table_name), false, true, '')))[1]::text::int as linhas
-from information_schema.tables
-where table_schema = 'backup'
-order by table_name;
+-- 3.2 Ver os backups: de qual cliente é cada parte, quantas linhas e de quando a quando
+select t.table_name                                    as backup,
+       coalesce(cl.nome, '(cliente apagado)')          as cliente,
+       x.linhas,
+       x.de  at time zone 'America/Sao_Paulo'          as dados_de,
+       x.ate at time zone 'America/Sao_Paulo'          as dados_ate
+from information_schema.tables t
+cross join lateral xmltable('/table/row'
+  passing query_to_xml(format(
+    'select cliente_id, count(*) as linhas, min(created_at) as de, max(created_at) as ate from backup.%I group by cliente_id',
+    t.table_name), false, false, '')
+  columns cliente_id uuid path 'cliente_id', linhas int path 'linhas',
+          de timestamptz path 'de', ate timestamptz path 'ate') x
+left join clientes cl on cl.id = x.cliente_id
+where t.table_schema = 'backup'
+order by t.table_name, cl.nome;
 
--- 3.3 Restaurar um backup (troque <data> pelo sufixo, ex.: 20261102_1445).
---     Não duplica: linhas que já existem são ignoradas.
+-- 3.3 Restaurar um backup (troque <nome> pelo final do nome da tabela, ex.: jubeauty_20261102_1445
+--     ou todos_20261102_1445). Não duplica: linhas que já existem são ignoradas.
 begin;
-insert into public.mensagens        overriding system value select * from backup."mensagens_<data>" on conflict do nothing;
-insert into public.eventos_conversa overriding system value select * from backup."eventos_<data>"   on conflict do nothing;
--- acerta o contador de ids depois de restaurar
+insert into public.mensagens        overriding system value select * from backup."mensagens_<nome>" on conflict do nothing;
+insert into public.eventos_conversa overriding system value select * from backup."eventos_<nome>"   on conflict do nothing;
+select setval(pg_get_serial_sequence('public.mensagens', 'id'),        (select coalesce(max(id), 1) from public.mensagens));
+select setval(pg_get_serial_sequence('public.eventos_conversa', 'id'), (select coalesce(max(id), 1) from public.eventos_conversa));
+commit;
+
+-- 3.3b Restaurar só UM cliente a partir de um backup de todos
+begin;
+insert into public.mensagens overriding system value
+  select * from backup."mensagens_<nome>" where cliente_id = (select id from clientes where slug = 'jubeauty')
+  on conflict do nothing;
+insert into public.eventos_conversa overriding system value
+  select * from backup."eventos_<nome>" where cliente_id = (select id from clientes where slug = 'jubeauty')
+  on conflict do nothing;
 select setval(pg_get_serial_sequence('public.mensagens', 'id'),        (select coalesce(max(id), 1) from public.mensagens));
 select setval(pg_get_serial_sequence('public.eventos_conversa', 'id'), (select coalesce(max(id), 1) from public.eventos_conversa));
 commit;
 
 -- 3.4 Apagar um backup que não precisa mais
-drop table if exists backup."mensagens_<data>", backup."eventos_<data>";
+drop table if exists backup."mensagens_<nome>", backup."eventos_<nome>";
 
 
 -- =============================================================================
