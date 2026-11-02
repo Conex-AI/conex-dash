@@ -41,6 +41,7 @@ Todas prontas, no layout do protótipo (https://claude.ai/artifact/71fpWMs7942KS
 
 ## Convenções
 - Leitura de dados só em `src/api.js`; cálculo de métricas em `src/lib/metricas.js`.
+- Navegação por endereço (`src/lib/rota.js`): `/aba?cliente=slug`, cada troca de aba ou de cliente vai para o histórico (voltar do navegador e botões do mouse funcionam). Menu usa `<a href>`; nginx manda qualquer rota para o index.html.
 - `VITE_DEMO=1` roda com dados fictícios (`src/demo.js`) para ver o visual sem login.
 - Mensagens de erro para o cliente final: simples, em português, sem jargão.
 - Mudanças de banco: sempre como SQL para o Vini rodar no SQL Editor; explicar o motivo.

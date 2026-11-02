@@ -10,6 +10,7 @@ import Pix from './pages/Pix'
 import Followup from './pages/Followup'
 import Clientes from './pages/Clientes'
 import NovaSenha from './NovaSenha'
+import { useRota, endereco, cliqueInterno } from './lib/rota'
 
 const ABAS = [
   { id: 'dashboard', nome: 'Dashboard' },
@@ -36,7 +37,7 @@ export default function App() {
   const [perfil, setPerfil] = useState(null)
   const [clientes, setClientes] = useState([])
   const [clienteId, setClienteId] = useState(null)
-  const [aba, setAba] = useState('dashboard')
+  const [rota, ir] = useRota()
   const [erro, setErro] = useState('')
   const [recuperando, setRecuperando] = useState(false)
 
@@ -63,8 +64,9 @@ export default function App() {
         setPerfil(p)
         setClientes(lista)
         const salvo = lerSalvo('conex.cliente')
+        const daUrl = lista.find((c) => c.slug === new URLSearchParams(window.location.search).get('cliente'))
         const inicial = p.papel === 'admin'
-          ? (lista.find((c) => c.id === salvo) || lista[0])
+          ? (daUrl || lista.find((c) => c.id === salvo) || lista[0])
           : lista.find((c) => c.id === p.cliente_id) || lista[0]
         setClienteId(inicial?.id ?? null)
       } catch (e) {
@@ -73,6 +75,24 @@ export default function App() {
     })()
     return () => { ativo = false }
   }, [sessao])
+
+  // Voltar/avançar do navegador trocando de cliente (admin)
+  useEffect(() => {
+    if (!rota.cliente || !clientes.length) return
+    const c = clientes.find((x) => x.slug === rota.cliente)
+    if (c && c.id !== clienteId) setClienteId(c.id)
+  }, [rota.cliente, clientes]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Deixa o endereço sempre completo (/aba?cliente=slug) e corrige aba proibida
+  useEffect(() => {
+    if (!perfil || !clienteId) return
+    const c = clientes.find((x) => x.id === clienteId)
+    const aba = rota.aba === 'clientes' && perfil.papel !== 'admin' ? 'dashboard' : rota.aba
+    // se o endereço já aponta para um cliente válido, quem manda é o endereço (efeito acima)
+    const daUrl = perfil.papel === 'admin' && clientes.some((x) => x.slug === rota.cliente)
+    const slug = daUrl ? rota.cliente : c?.slug
+    if (slug && (slug !== rota.cliente || aba !== rota.aba)) ir(aba, slug, true)
+  }, [perfil, clienteId, clientes, rota.aba, rota.cliente]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!configurado && !DEMO) {
     return <div className="login-tela"><div className="erro">Faltam as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no ambiente. Depois de salvar, reinicie o app.</div></div>
@@ -84,10 +104,14 @@ export default function App() {
   const admin = perfil?.papel === 'admin'
   const cliente = clientes.find((c) => c.id === clienteId)
   const abas = ABAS.filter((a) => !a.soAdmin || admin)
+  const aba = rota.aba === 'clientes' && !admin ? 'dashboard' : rota.aba
+  const irPara = (novaAba) => ir(novaAba, cliente?.slug)
 
-  function escolherCliente(id) {
+  function escolherCliente(id, novaAba = aba) {
+    const c = clientes.find((x) => x.id === id)
     setClienteId(id)
     gravarSalvo('conex.cliente', id)
+    if (c) ir(novaAba, c.slug)
   }
   async function sair() {
     if (!DEMO) await supabase.auth.signOut()
@@ -120,9 +144,10 @@ export default function App() {
 
         <nav className="nav" aria-label="Principal">
           {abas.map((a) => (
-            <button key={a.id} className={aba === a.id ? 'ativa' : ''} aria-current={aba === a.id ? 'page' : undefined} onClick={() => setAba(a.id)}>
+            <a key={a.id} href={endereco(a.id, cliente?.slug)} className={aba === a.id ? 'ativa' : ''} aria-current={aba === a.id ? 'page' : undefined}
+              onClick={(e) => { if (cliqueInterno(e)) { e.preventDefault(); irPara(a.id) } }}>
               {ICONES[a.id]}{a.nome}
-            </button>
+            </a>
           ))}
         </nav>
 
@@ -138,7 +163,7 @@ export default function App() {
         {perfil && !cliente && <div className="vazio">Nenhum cliente vinculado ao seu usuário.</div>}
         {perfil && cliente && (
           <>
-            {aba === 'dashboard' && <Dashboard cliente={cliente} irPara={setAba} />}
+            {aba === 'dashboard' && <Dashboard cliente={cliente} irPara={irPara} />}
             {aba === 'conversas' && <Conversas cliente={cliente} />}
             {aba === 'metricas' && <Metricas cliente={cliente} />}
             {aba === 'pix' && <Pix cliente={cliente} />}
@@ -146,7 +171,7 @@ export default function App() {
             {aba === 'clientes' && admin && (
               <Clientes clientes={clientes} clienteAtual={cliente}
                 onNovoCliente={(c) => setClientes((l) => [...l, c].sort((a, b) => a.nome.localeCompare(b.nome)))}
-                abrir={(id) => { escolherCliente(id); setAba('dashboard') }} />
+                abrir={(id) => escolherCliente(id, 'dashboard')} />
             )}
           </>
         )}
