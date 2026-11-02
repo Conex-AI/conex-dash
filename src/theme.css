@@ -184,3 +184,41 @@ a { color: inherit; text-decoration: none; }
 .login-card .btn { width: 100%; margin-top: 22px; padding: 12px; font-size: 14px; }
 .login-card h1 { font-size: 18px; text-align: center; margin: 0 0 4px; }
 .login-card .sub { text-align: center; color: var(--text-muted); font-size: 13.5px; margin: 0 0 6px; }
+
+/* ---------- conversas (3 painéis) ---------- */
+.conv { display: grid; grid-template-columns: 300px minmax(0, 1fr) 270px; gap: 16px; align-items: stretch; min-height: 620px; }
+.conv > div, .conv > aside { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; min-width: 0; }
+.conv-lista { padding: 14px; display: flex; flex-direction: column; gap: 8px; max-height: 72vh; overflow-y: auto; }
+.conv-busca { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
+.conv-busca .campo-rotulo { padding: 0 2px; }
+.conv-item { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; width: 100%;
+  background: transparent; border: 1px solid transparent; border-radius: 12px; padding: 10px 12px; color: var(--text); cursor: pointer; font: inherit; }
+.conv-item:hover { background: var(--surface-2); }
+.conv-item.ativa { background: var(--primary-soft); border-color: rgba(10, 87, 252, 0.45); }
+.conv-linha { display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 14px; }
+.conv-linha em { font-style: normal; font-size: 12px; color: var(--text-muted); }
+.conv-sub { font-size: 12.5px; color: var(--text-muted); }
+.conv-chat { display: flex; flex-direction: column; max-height: 72vh; }
+.conv-topo { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+.conv-topo b { display: block; font-size: 15px; }
+.conv-topo span:not(.chip) { font-size: 12.5px; color: var(--text-muted); }
+.conv-msgs { padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; flex: 1; }
+.conv-dia { display: flex; flex-direction: column; gap: 10px; }
+.conv-data { align-self: center; font-size: 12px; color: var(--text-muted); background: var(--surface-2); padding: 3px 10px; border-radius: 99px; }
+.bolha { display: flex; flex-direction: column; gap: 3px; max-width: 78%; }
+.bolha > div { padding: 9px 12px; border-radius: 14px; font-size: 13.5px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--surface-2); }
+.bolha-quem { font-size: 11.5px; color: var(--text-muted); }
+.bolha.ia, .bolha.humano { align-self: flex-end; align-items: flex-end; }
+.bolha.ia > div { background: var(--primary); color: #fff; border-bottom-right-radius: 4px; }
+.bolha.humano > div { background: var(--success-soft); color: var(--text); border-bottom-right-radius: 4px; }
+.bolha.cliente > div { border-bottom-left-radius: 4px; }
+.conv-det { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.conv-det-titulo { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.conv-det dl { margin: 0; display: flex; flex-direction: column; gap: 12px; }
+.conv-det dt { font-size: 12px; color: var(--text-muted); }
+.conv-det dd { margin: 2px 0 0; font-size: 14px; font-weight: 500; }
+.linha-tempo { display: flex; flex-direction: column; gap: 10px; }
+.linha-tempo div { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text-2); }
+.linha-tempo i { width: 8px; height: 8px; border-radius: 99px; background: var(--primary-text); margin-top: 5px; flex: none; }
+@media (max-width: 1100px) { .conv { grid-template-columns: 260px minmax(0, 1fr); } .conv-det { grid-column: 1 / -1; } }
+@media (max-width: 700px) { .conv { grid-template-columns: 1fr; } .conv-lista, .conv-chat { max-height: 60vh; } }

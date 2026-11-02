@@ -32,7 +32,7 @@ Views/funções: `v_conversas_resumo`, `v_conversoes` (conversão só conta se h
 Tema dark grafite + azul Conex. Tokens em `src/theme.css`: fundo `#16181D`, cards `#1E2128`, azul `#0A57FC`. Não usar preto puro. Logo em `public/logo-conex.png` (fundo transparente).
 
 ## Estado das abas
-Prontas: Dashboard (layout do protótipo, dados via função `dashboard_periodo` em `sql/dashboard_periodo.sql`), Conversas (lista simples; protótipo tem 3 painéis). Faltam (hoje `EmBreve`): Métricas, Pix, Follow-up, Clientes (só admin). Protótipo de todas as 6 telas: https://claude.ai/artifact/71fpWMs7942KSqvUNdiSHB (tema claro; o app usa os mesmos layouts com os tokens dark).
+Prontas: Dashboard (layout do protótipo, dados via função `dashboard_periodo` em `sql/dashboard_periodo.sql`), Conversas (3 painéis: lista, chat e detalhes com linha do tempo; lê `mensagens` e `eventos_conversa` pelo RLS). Faltam (hoje `EmBreve`): Métricas, Pix, Follow-up, Clientes (só admin). Protótipo de todas as 6 telas: https://claude.ai/artifact/71fpWMs7942KSqvUNdiSHB (tema claro; o app usa os mesmos layouts com os tokens dark).
 
 ## Convenções
 - Leitura de dados só em `src/api.js`; cálculo de métricas em `src/lib/metricas.js`.

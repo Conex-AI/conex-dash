@@ -79,3 +79,40 @@ export function demoDashboard(clienteId, de, ate) {
     mensagens: { total: soma('msgs_cliente') + soma('msgs_ia') + soma('msgs_humano') + 214, recebidas: soma('msgs_cliente'), ia: soma('msgs_ia'), humano: soma('msgs_humano'), midia: 214 },
   }
 }
+
+function minutosAtras(m) { return new Date(Date.now() - m * 60e3).toISOString() }
+
+export function demoMensagens(telefone) {
+  if (telefone === '5561999990003') {
+    return [
+      { id: 1, origem: 'cliente', tipo: 'texto', conteudo: 'oi, quanto custa a limpeza de pele?', created_at: minutosAtras(1850) },
+      { id: 2, origem: 'ia', tipo: 'texto', conteudo: 'Oii! Aqui é a Jú, da Ju Beauty. A limpeza de pele é R$ 150,00. Quer ver um horário?', created_at: minutosAtras(1849) },
+    ]
+  }
+  return [
+    { id: 1, origem: 'cliente', tipo: 'texto', conteudo: 'oi, queria saber do lash lift', created_at: minutosAtras(95) },
+    { id: 2, origem: 'ia', tipo: 'texto', conteudo: 'Oii, tudo bem? Aqui é a Jú, do atendimento da Ju Beauty. O Lash Lift é R$ 120,00.', created_at: minutosAtras(94) },
+    { id: 3, origem: 'ia', tipo: 'texto', conteudo: 'Qual dia e horário ficam melhores pra você?', created_at: minutosAtras(94) },
+    { id: 4, origem: 'cliente', tipo: 'texto', conteudo: 'quinta à tarde', created_at: minutosAtras(86) },
+    { id: 5, origem: 'ia', tipo: 'texto', conteudo: 'Anotei quinta à tarde. A Juliana confirma o horário. Pra reservar, o sinal é de R$ 30,00 no Pix.', created_at: minutosAtras(85) },
+    { id: 6, origem: 'cliente', tipo: 'imagem', conteudo: 'Segue o comprovante', created_at: minutosAtras(74) },
+    { id: 7, origem: 'humano', tipo: 'texto', conteudo: 'Oi Amanda, recebi! Agendamento confirmado!', created_at: minutosAtras(60) },
+  ]
+}
+
+export function demoEventos(telefone) {
+  if (telefone === '5561999990003') {
+    return [
+      { evento: 'contato_novo', created_at: minutosAtras(1850) },
+      { evento: 'procedimento_definido', procedimento: 'Limpeza de pele', created_at: minutosAtras(1849) },
+    ]
+  }
+  return [
+    { evento: 'contato_novo', created_at: minutosAtras(95) },
+    { evento: 'procedimento_definido', procedimento: 'Lash Lift', created_at: minutosAtras(94) },
+    { evento: 'horario_definido', valor: 'Quinta à tarde', created_at: minutosAtras(86) },
+    { evento: 'transferencia_esperada', motivo: 'Comprovante de Pix', created_at: minutosAtras(74) },
+    { evento: 'comprovante_recebido', created_at: minutosAtras(74) },
+    { evento: 'conversao', created_at: minutosAtras(60) },
+  ]
+}

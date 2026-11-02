@@ -1,5 +1,5 @@
 // Todas as datas do painel são no fuso de Brasília, igual às views do banco.
-const TZ = 'America/Sao_Paulo'
+export const TZ = 'America/Sao_Paulo'
 
 export function hojeSP() {
   return new Date().toLocaleDateString('sv', { timeZone: TZ }) // yyyy-mm-dd
