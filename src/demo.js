@@ -48,7 +48,7 @@ export const demoConversas = [
   { telefone: '5561999990003', nome_wpp: 'Bia', ultima_msg_em: new Date(Date.now() - 3600e3 * 30).toISOString(), total_mensagens: 9, ultima_origem: 'ia', ultimo_desfecho: null },
 ]
 
-export function demoFunil(clienteId, de, ate) {
+export function demoDashboard(clienteId, de, ate) {
   const rows = demoMetricas(clienteId, de).filter((r) => r.dia <= ate)
   const soma = (c) => rows.reduce((a, r) => a + r[c], 0)
   const agendamento = soma('conversoes')
@@ -56,6 +56,26 @@ export function demoFunil(clienteId, de, ate) {
   const repasse = Math.max(soma('repasses_esperados'), comprovante)
   const horario = Math.max(soma('horario_definido'), repasse)
   const procedimento = Math.max(soma('procedimento_definido'), horario)
-  const conversas = Math.max(Math.round(soma('contatos_novos') * 1.6), procedimento)
-  return { conversas, procedimento, horario, repasse, comprovante, agendamento }
+  const conversas = Math.max(Math.round(soma('contatos_novos') * 1.6), procedimento + 6)
+  const falha = soma('repasses_falhos')
+  const resolvida = Math.round((conversas - repasse - falha) * 0.8)
+  const horas = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19].map((h, i) => ({ h, n: [12, 24, 31, 28, 20, 26, 41, 49, 38, 30, 17, 9][i] }))
+  return {
+    funil: { conversas, procedimento, horario, repasse, comprovante, agendamento, comprovantes_recebidos: comprovante },
+    desfechos: { esperado: repasse, falha, resolvida, sem_desfecho: Math.max(0, conversas - repasse - falha - resolvida) },
+    motivos: [
+      { motivo: 'Comprovante de Pix', tipo: 'esperado', total: comprovante },
+      { motivo: 'Escolha de horário', tipo: 'esperado', total: Math.max(0, repasse - comprovante) },
+      { motivo: 'Pedido de desconto', tipo: 'esperado', total: 4 },
+      { motivo: 'Áudio não compreendido', tipo: 'falha', total: falha },
+    ],
+    horas,
+    procedimentos: [
+      { procedimento: 'Volume Brasileiro', total: 84 }, { procedimento: 'Lash Lift', total: 61 },
+      { procedimento: 'Design de sobrancelhas', total: 47 }, { procedimento: 'Fox Effect', total: 39 },
+      { procedimento: 'Brow Lamination', total: 28 },
+    ],
+    pix: { comprovantes: comprovante, pendentes: 3, minutos_ate_confirmar: 38 },
+    mensagens: { total: soma('msgs_cliente') + soma('msgs_ia') + soma('msgs_humano') + 214, recebidas: soma('msgs_cliente'), ia: soma('msgs_ia'), humano: soma('msgs_humano'), midia: 214 },
+  }
 }

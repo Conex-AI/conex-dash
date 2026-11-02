@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase, DEMO, configurado } from './supabase'
 import { carregarPerfil, carregarClientes } from './api'
+import { ICONES } from './components/Icones'
 import Login from './Login'
 import Dashboard from './pages/Dashboard'
 import Conversas from './pages/Conversas'
@@ -15,6 +16,10 @@ const ABAS = [
   { id: 'clientes', nome: 'Clientes', soAdmin: true },
 ]
 
+function iniciais(nome = '') {
+  const p = nome.trim().split(/\s+/).filter(Boolean)
+  return ((p[0]?.[0] || '') + (p[1]?.[0] || p[0]?.[1] || '')).toUpperCase()
+}
 function lerSalvo(chave) {
   try { return localStorage.getItem(chave) } catch { return null }
 }
@@ -31,7 +36,8 @@ export default function App() {
   const [erro, setErro] = useState('')
 
   useEffect(() => {
-    if (DEMO || !configurado) { if (!configurado && !DEMO) setSessao(null); return }
+    if (DEMO) return
+    if (!configurado) { setSessao(null); return }
     supabase.auth.getSession().then(({ data }) => setSessao(data.session))
     const { data } = supabase.auth.onAuthStateChange((_ev, s) => setSessao(s))
     return () => data.subscription.unsubscribe()
@@ -74,54 +80,67 @@ export default function App() {
     setClienteId(id)
     gravarSalvo('conex.cliente', id)
   }
-
   async function sair() {
-    if (DEMO) return
-    await supabase.auth.signOut()
+    if (!DEMO) await supabase.auth.signOut()
   }
 
   return (
-    <>
-      <header className="topbar">
-        <div className="topbar-inner">
-          <img className="logo" src="/logo-conex.png" alt="Conex" />
-          <nav className="tabs">
-            {abas.map((a) => (
-              <button key={a.id} className={`tab ${aba === a.id ? 'ativa' : ''}`} onClick={() => setAba(a.id)}>
-                {a.nome}
-              </button>
-            ))}
-          </nav>
-          <div className="spacer" />
-          <div className="controles">
-            {admin && clientes.length > 0 && (
-              <select className="select" value={clienteId || ''} onChange={(e) => escolherCliente(e.target.value)} aria-label="Cliente">
-                {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-              </select>
-            )}
-            <button className="btn btn-ghost" onClick={sair}>Sair</button>
-          </div>
+    <div className="app">
+      <aside className="side">
+        <div className="marca">
+          <img src="/logo-simbolo.png" alt="" />
+          <span>Conex Dash</span>
         </div>
-      </header>
 
-      <main className="page">
+        {cliente && (
+          <div className="cliente-box">
+            <span className="campo-rotulo">Cliente</span>
+            <div className="cliente-sel">
+              <span className="avatar">{iniciais(cliente.nome)}</span>
+              {admin && clientes.length > 1 ? (
+                <select value={clienteId || ''} onChange={(e) => escolherCliente(e.target.value)} aria-label="Cliente">
+                  {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                </select>
+              ) : (
+                <strong style={{ fontSize: 14 }}>{cliente.nome}</strong>
+              )}
+            </div>
+            {admin && <span className="campo-rotulo">Visão admin: {clientes.filter((c) => c.ativo).length} clientes ativos</span>}
+          </div>
+        )}
+
+        <nav className="nav" aria-label="Principal">
+          {abas.map((a) => (
+            <button key={a.id} className={aba === a.id ? 'ativa' : ''} aria-current={aba === a.id ? 'page' : undefined} onClick={() => setAba(a.id)}>
+              {ICONES[a.id]}{a.nome}
+            </button>
+          ))}
+        </nav>
+
+        <div className="side-rodape">
+          <span className="usuario">{sessao.user.email}</span>
+          <button className="btn-claro" onClick={sair}>Sair</button>
+        </div>
+      </aside>
+
+      <main className="main">
         {erro && <div className="erro">{erro}</div>}
         {!erro && !perfil && <div className="carregando">Carregando…</div>}
         {perfil && !cliente && <div className="vazio">Nenhum cliente vinculado ao seu usuário.</div>}
         {perfil && cliente && (
           <>
-            {aba === 'dashboard' && <Dashboard cliente={cliente} />}
+            {aba === 'dashboard' && <Dashboard cliente={cliente} irPara={setAba} />}
             {aba === 'conversas' && <Conversas cliente={cliente} />}
-            {aba === 'metricas' && <EmBreve titulo="Métricas" texto="Resolução, repasse e tempo de resposta com mais detalhe." />}
-            {aba === 'pix' && <EmBreve titulo="Pix" texto="Funil do sinal: pedido, comprovante e confirmação." />}
+            {aba === 'metricas' && <EmBreve titulo="Métricas" texto="Como a Jú atende: resolução, repasses e quando as clientes chamam." />}
+            {aba === 'pix' && <EmBreve titulo="Pix" texto="Sinal de reserva: do horário liberado ao agendamento confirmado." />}
             {aba === 'followup' && (
               <EmBreve titulo="Follow-up"
-                texto={cliente.followup_ativo ? 'Enviados por estágio e conversões atribuídas.' : 'O follow-up está desativado para este cliente.'} />
+                texto={cliente.followup_ativo ? 'Reativação de conversas em 24h, 48h e 72h.' : 'O follow-up está desativado para este cliente.'} />
             )}
-            {aba === 'clientes' && admin && <EmBreve titulo="Clientes" texto="Lista de clientes e acessos." />}
+            {aba === 'clientes' && admin && <EmBreve titulo="Clientes" texto="Todos os clientes e os acessos de cada um." />}
           </>
         )}
       </main>
-    </>
+    </div>
   )
 }

@@ -1,5 +1,5 @@
 import { supabase, DEMO } from './supabase'
-import { demoClientes, demoMetricas, demoConversas, demoFunil } from './demo'
+import { demoClientes, demoMetricas, demoConversas, demoDashboard } from './demo'
 
 // Todas as leituras passam pelo RLS do banco: o cliente só recebe as linhas dele.
 
@@ -37,10 +37,10 @@ export async function carregarConversas(clienteId) {
   return data
 }
 
-// Funil com pessoas distintas no período inteiro (função funil_periodo, respeita o RLS).
-export async function carregarFunil(clienteId, de, ate) {
-  if (DEMO) return demoFunil(clienteId, de, ate)
-  const { data, error } = await supabase.rpc('funil_periodo', { p_cliente: clienteId, p_de: de, p_ate: ate })
+// Dashboard completo do período (função dashboard_periodo, respeita o RLS).
+export async function carregarDashboard(clienteId, de, ate) {
+  if (DEMO) return demoDashboard(clienteId, de, ate)
+  const { data, error } = await supabase.rpc('dashboard_periodo', { p_cliente: clienteId, p_de: de, p_ate: ate })
   if (error) throw error
-  return data?.[0] ?? { conversas: 0, procedimento: 0, horario: 0, repasse: 0, comprovante: 0, agendamento: 0 }
+  return data
 }

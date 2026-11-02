@@ -1,45 +1,67 @@
 import { listaDias, rotuloDia } from './datas'
 
-const CAMPOS = [
-  'conversas_ativas', 'msgs_cliente', 'msgs_ia', 'msgs_humano', 'contatos_novos',
-  'procedimento_definido', 'horario_definido', 'repasses_esperados', 'repasses_falhos',
-  'resolvidas_sem_humano', 'comprovantes', 'conversoes',
-]
-
 export function razao(a, b) {
   return b > 0 ? a / b : null
-}
-
-export function pct(v) {
-  return v === null || v === undefined ? '—' : `${(v * 100).toFixed(v >= 0.995 || v === 0 ? 0 : 1).replace('.', ',')}%`
 }
 
 export function num(v) {
   return Number(v || 0).toLocaleString('pt-BR')
 }
 
-export function totais(rows) {
-  const t = Object.fromEntries(CAMPOS.map((c) => [c, 0]))
-  for (const r of rows) for (const c of CAMPOS) t[c] += Number(r[c] || 0)
-  // Repasse esperado conta como sucesso, junto com resolvida sem humano.
-  t.sucessos = t.repasses_esperados + t.resolvidas_sem_humano
-  t.taxa_resolucao = razao(t.sucessos, t.sucessos + t.repasses_falhos)
-  t.taxa_conversao = razao(t.conversoes, t.repasses_esperados)
-  return t
+export function pct(v, casas = 1) {
+  if (v === null || v === undefined) return '—'
+  return `${(v * 100).toFixed(casas).replace('.', ',')}%`
 }
 
-// f vem da função funil_periodo: pessoas distintas que chegaram a cada etapa (ou além) no período.
-export function funil(f) {
-  const etapas = [
-    ['Conversas', f.conversas],
+function sinal(n, texto) {
+  return `${n > 0 ? '+' : n < 0 ? '−' : ''}${texto}`
+}
+
+// Indicadores do período a partir do retorno de dashboard_periodo.
+// Definições (iguais às do protótipo):
+//  - taxa de sucesso = (repasses esperados + resolvidas pela IA) / conversas
+//  - conversão       = agendamentos confirmados / conversas
+export function indicadores(d) {
+  const f = d.funil
+  const x = d.desfechos
+  const conversas = Number(f.conversas)
+  const sucessos = Number(x.esperado) + Number(x.resolvida)
+  return {
+    conversas,
+    sucessos,
+    taxaSucesso: razao(sucessos, conversas),
+    conversoes: Number(f.agendamento),
+    taxaConversao: razao(Number(f.agendamento), conversas),
+    falhas: Number(x.falha),
+    taxaFalha: razao(Number(x.falha), conversas),
+  }
+}
+
+// Comparação com o período anterior. `melhorQuandoMenor` vale para falhas.
+export function deltaPct(atual, anterior) {
+  if (!anterior) return null
+  const v = ((atual - anterior) / anterior) * 100
+  return { texto: sinal(v, `${Math.abs(v).toFixed(1).replace('.', ',')}%`), bom: v >= 0 }
+}
+export function deltaPts(atual, anterior) {
+  if (atual === null || anterior === null) return null
+  const v = (atual - anterior) * 100
+  return { texto: sinal(v, `${Math.abs(v).toFixed(1).replace('.', ',')} pts`), bom: v >= 0 }
+}
+export function deltaAbs(atual, anterior, melhorQuandoMenor = false) {
+  const v = atual - anterior
+  return { texto: sinal(v, `${Math.abs(v)}`), bom: melhorQuandoMenor ? v <= 0 : v >= 0 }
+}
+
+export function etapasFunil(f) {
+  const topo = Math.max(Number(f.conversas), 1)
+  return [
+    ['Contatos', f.conversas],
     ['Procedimento definido', f.procedimento],
     ['Horário definido', f.horario],
-    ['Repassado para a Juliana', f.repasse],
     ['Comprovante recebido', f.comprovante],
     ['Agendamento confirmado', f.agendamento],
-  ].map(([nome, valor]) => [nome, Number(valor || 0)])
-  const topo = Math.max(...etapas.map((e) => e[1]), 1)
-  return etapas.map(([nome, valor]) => ({ nome, valor, largura: (valor / topo) * 100, pctTopo: razao(valor, topo) }))
+  ].map(([nome, v]) => ({ nome, valor: Number(v), pct: pct(Number(v) / topo), largura: (Number(v) / topo) * 100 }))
 }
 
 export function serieDiaria(rows, de, ate) {
@@ -48,10 +70,25 @@ export function serieDiaria(rows, de, ate) {
     const r = porDia.get(dia) || {}
     return {
       dia, rotulo: rotuloDia(dia),
-      Cliente: Number(r.msgs_cliente || 0),
-      IA: Number(r.msgs_ia || 0),
-      Humano: Number(r.msgs_humano || 0),
-      Conversões: Number(r.conversoes || 0),
+      Conversas: Number(r.conversas_ativas || 0),
+      Confirmadas: Number(r.conversoes || 0),
     }
   })
+}
+
+// Horas 8h–19h para o gráfico de horários de pico.
+export function horariosPico(horas) {
+  const porHora = new Map(horas.map((x) => [x.h, Number(x.n)]))
+  const lista = Array.from({ length: 12 }, (_, i) => ({ h: i + 8, n: porHora.get(i + 8) || 0 }))
+  const topo = Math.max(...lista.map((x) => x.n))
+  const pico = topo > 0 ? lista.find((x) => x.n === topo) : null
+  return { lista, topo, pico }
+}
+
+export function csvDiario(rows) {
+  const cab = ['Data', 'Conversas', 'Mensagens da cliente', 'Mensagens da IA', 'Mensagens da Juliana',
+    'Repasses esperados', 'Repasses por falha', 'Resolvidas sem humano', 'Comprovantes', 'Agendamentos confirmados']
+  const linhas = rows.map((r) => [r.dia, r.conversas_ativas, r.msgs_cliente, r.msgs_ia, r.msgs_humano,
+    r.repasses_esperados, r.repasses_falhos, r.resolvidas_sem_humano, r.comprovantes, r.conversoes])
+  return '﻿' + [cab, ...linhas].map((l) => l.join(';')).join('\n')
 }
