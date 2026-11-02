@@ -169,7 +169,7 @@ export default function App() {
               <Perfil cliente={cliente} email={sessao.user.email} admin={admin} tema={tema} setTema={setTema} sair={sair}
                 onFoto={(url) => setClientes((l) => l.map((c) => (c.id === cliente.id ? { ...c, foto_url: url } : c)))} />
             )}
-            {aba === 'metricas' && <Metricas cliente={cliente} />}
+            {aba === 'metricas' && <Metricas cliente={cliente} irPara={irPara} />}
             {aba === 'pix' && <Pix cliente={cliente} />}
             {aba === 'followup' && <Followup cliente={cliente} />}
             {aba === 'clientes' && admin && (

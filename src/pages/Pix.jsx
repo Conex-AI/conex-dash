@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { carregarPix } from '../api'
 import { TZ } from '../lib/datas'
-import { duracao, num, pct, razao, reais } from '../lib/metricas'
+import { duracao, num, pct, razao, reais, capitaliza } from '../lib/metricas'
 import { Barra, Cabecalho, Card, Chip, Kpi } from '../components/Ui'
 import { usePeriodo, SeletorPeriodo } from '../components/Periodo'
 
@@ -88,7 +88,7 @@ export default function Pix({ cliente }) {
                     {d.recentes.map((r) => (
                       <tr key={r.telefone + r.recebido_em}>
                         <td><b>{r.nome_wpp || '—'}</b></td>
-                        <td>{r.procedimento || '—'}</td>
+                        <td>{capitaliza(r.procedimento) || '—'}</td>
                         <td>{valorTexto(r.valor)}</td>
                         <td>{quando(r.recebido_em)}</td>
                         <td>{r.confirmado_em ? <Chip tom="verde">Confirmado</Chip> : <Chip tom="laranja">Pendente de conferência</Chip>}</td>

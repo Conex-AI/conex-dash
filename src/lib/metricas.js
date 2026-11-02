@@ -113,3 +113,25 @@ export function decimal(v, casas = 1) {
   if (v === null || v === undefined) return '—'
   return Number(v).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas })
 }
+
+// Motivos chegam do fluxo como código (ex.: "comprovante_pix"). Mostra em português.
+const MOTIVOS = {
+  comprovante_pix: 'Comprovante de Pix',
+  confirmacao_horario: 'Confirmação de horário',
+  escolha_horario: 'Escolha de horário',
+  pedido_horario: 'Pedido de horário',
+  pedido_desconto: 'Pedido de desconto',
+  desconto: 'Desconto ou condição especial',
+  duvida_saude: 'Dúvida de saúde',
+  falar_com_humano: 'Pediu para falar com a Juliana',
+  audio_nao_compreendido: 'Áudio não compreendido',
+}
+export function capitaliza(t) {
+  if (!t) return t
+  const s = String(t)
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+export function rotuloMotivo(m) {
+  if (!m) return 'Não informado'
+  return MOTIVOS[m] || capitaliza(String(m).replace(/_/g, ' '))
+}

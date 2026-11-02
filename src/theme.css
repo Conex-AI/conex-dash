@@ -366,3 +366,55 @@ a { color: inherit; text-decoration: none; }
 .campos label { display: flex; flex-direction: column; gap: 6px; }
 .campos .campo-rotulo { padding: 0 2px; }
 .login-card .logo-login { display: block; margin: 0 auto 22px; color: var(--text); }
+
+/* ---------- seletor de período ---------- */
+.seletor-periodo { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.pintervalo { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px 5px 6px; border-radius: 14px;
+  background: var(--surface); border: 1px solid var(--border); }
+.pdata { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px 3px 4px; border-radius: 10px; background: var(--surface-2); }
+.pdata b { min-width: 26px; height: 26px; padding: 0 4px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;
+  background: var(--primary-soft); color: var(--primary-text); font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pdata > span { display: flex; flex-direction: column; line-height: 1.05; }
+.pdata em { font-style: normal; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text); }
+.pdata i { font-style: normal; font-size: 10.5px; color: var(--text-muted); }
+.pseta { color: var(--text-muted); flex: none; }
+.pdias { font-size: 12px; color: var(--text-muted); padding-left: 6px; margin-left: 2px; border-left: 1px solid var(--border); }
+.periodo .periodo-cal { display: inline-flex; align-items: center; justify-content: center; padding: 7px 10px; }
+
+.cal { position: absolute; top: calc(100% + 8px); right: 0; z-index: 30; display: flex; width: max-content; max-width: calc(100vw - 32px);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35); overflow: hidden; }
+.cal-atalhos { display: flex; flex-direction: column; gap: 2px; padding: 12px; border-right: 1px solid var(--border); min-width: 150px; }
+.cal-atalhos button { text-align: left; background: none; border: 0; border-radius: 9px; padding: 8px 10px; font-size: 13px; color: var(--text-2); white-space: nowrap; }
+.cal-atalhos button:hover { background: var(--surface-2); color: var(--text); }
+.cal-corpo { position: relative; padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 10px; }
+.cal-nav { position: absolute; left: 10px; right: 10px; top: 10px; display: flex; justify-content: space-between; pointer-events: none; }
+.cal-seta { pointer-events: auto; width: 32px; height: 32px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface-2);
+  display: inline-flex; align-items: center; justify-content: center; color: var(--text); }
+.cal-seta:disabled { opacity: 0.35; cursor: default; }
+.cal-meses { display: flex; flex-wrap: wrap; gap: 24px; }
+.cal-mes { display: flex; flex-direction: column; gap: 10px; width: 252px; }
+.cal-titulo { text-align: center; font-size: 14px; font-weight: 600; text-transform: capitalize; line-height: 32px; }
+.cal-grade { display: grid; grid-template-columns: repeat(7, 36px); row-gap: 2px; }
+.cal-sem { text-align: center; font-size: 11px; font-weight: 600; color: var(--text-muted); padding-bottom: 4px; }
+.cal-dia { height: 36px; border: 0; background: none; font-size: 13px; color: var(--text); border-radius: 10px; position: relative; font-variant-numeric: tabular-nums; }
+.cal-dia:hover:not(:disabled) { background: var(--surface-2); }
+.cal-dia:disabled { color: var(--text-muted); opacity: 0.4; cursor: default; }
+.cal-dia.hoje::after { content: ''; position: absolute; left: 50%; bottom: 5px; width: 4px; height: 4px; margin-left: -2px; border-radius: 99px; background: var(--primary-text); }
+.cal-dia.meio { background: var(--primary-soft); border-radius: 0; }
+.cal-dia.ponta { background: var(--primary); color: #fff; font-weight: 700; }
+.cal-dia.ponta:hover { background: var(--primary-hover); }
+.cal-dia.ponta.hoje::after { background: #fff; }
+.cal-dia.ini { border-radius: 10px 0 0 10px; }
+.cal-dia.fim { border-radius: 0 10px 10px 0; }
+.cal-rodape { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-2); }
+.cal-rodape em { font-style: normal; color: var(--text-muted); }
+.cal-botoes { display: flex; gap: 8px; }
+@media (max-width: 760px) {
+  .cal { position: fixed; left: 16px; right: 16px; top: 80px; flex-direction: column; max-height: calc(100vh - 100px); overflow-y: auto; }
+  .cal-atalhos { flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid var(--border); }
+}
+
+/* ---------- títulos de seção (tela Métricas) ---------- */
+.secao { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 14px 4px 0; }
+.secao h2 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.secao span { font-size: 13px; color: var(--text-muted); }
