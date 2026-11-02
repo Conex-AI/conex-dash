@@ -4,7 +4,7 @@ Painel para clientes da Conex (consultoria de automações WhatsApp com n8n). Ca
 
 ## Stack
 - Vite + React (SPA), `@supabase/supabase-js`, `recharts`. Sem backend próprio.
-- Deploy: Dockerfile (build Vite → nginx) no EasyPanel. Variáveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` entram no **build** (são públicas).
+- Deploy: Dockerfile (build Vite → nginx) no EasyPanel. `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (públicas) são lidas quando o container liga: `docker/config.sh` grava `/config.js` (`window.__CONEX_CONFIG__`); em dev vale o `.env`. Mudou variável → reiniciar o app, sem rebuild.
 - Idioma de toda a interface e dos textos: português do Brasil. Datas no fuso `America/Sao_Paulo`.
 
 ## Segurança (regra de ouro)

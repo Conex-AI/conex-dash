@@ -75,7 +75,7 @@ export default function App() {
   }, [sessao])
 
   if (!configurado && !DEMO) {
-    return <div className="login-tela"><div className="erro">Faltam as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.</div></div>
+    return <div className="login-tela"><div className="erro">Faltam as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no ambiente. Depois de salvar, reinicie o app.</div></div>
   }
   if (sessao === undefined) return <div className="login-tela"><span className="carregando">Carregando…</span></div>
   if (!sessao) return <Login />
