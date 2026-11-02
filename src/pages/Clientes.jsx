@@ -4,6 +4,7 @@ import { TZ } from '../lib/datas'
 import { num, pct, razao } from '../lib/metricas'
 import { Cabecalho, Card, Chip, Kpi } from '../components/Ui'
 import { usePeriodo, SeletorPeriodo } from '../components/Periodo'
+import { Foto } from './Perfil'
 
 function iniciais(nome = '') {
   const p = nome.trim().split(/\s+/).filter(Boolean)
@@ -103,32 +104,40 @@ export default function Clientes({ clientes, clienteAtual, onNovoCliente, abrir 
 
       <Card titulo="Todos os clientes">
         <div className="rolagem">
-          <table className="tabela">
-            <thead><tr><th>Cliente</th><th className="dir">Conversas</th><th className="dir">Taxa de sucesso</th><th className="dir">Conversão</th><th>Follow-up</th><th>Última mensagem</th><th /></tr></thead>
+          <table className="tabela tabela-clientes">
+            <thead>
+              <tr>
+                <th className="esq">Cliente</th>
+                <th>Conversas</th>
+                <th>Taxa de sucesso</th>
+                <th>Conversão</th>
+                <th>Follow-up</th>
+                <th>Painel</th>
+              </tr>
+            </thead>
             <tbody>
               {clientes.map((c) => {
                 const r = porId[c.id] || {}
                 return (
                   <tr key={c.id} className={c.id === sel ? 'sel' : ''}>
-                    <td>
+                    <td className="esq">
                       <button className="cliente-linha" onClick={() => setSel(c.id)} title="Ver acessos">
-                        <span className="avatar">{iniciais(c.nome)}</span>
+                        <Foto cliente={c} className="cinza" />
                         <span><b>{c.nome}</b><em>{c.slug}</em></span>
                       </button>
                     </td>
-                    <td className="dir">{resumo ? num(r.conversas) : '…'}</td>
-                    <td className="dir">{resumo ? pct(razao(Number(r.sucessos || 0), Number(r.conversas || 0))) : '…'}</td>
-                    <td className="dir">{resumo ? pct(razao(Number(r.conversoes || 0), Number(r.conversas || 0))) : '…'}</td>
+                    <td><b>{resumo ? num(r.conversas) : '…'}</b></td>
+                    <td>{resumo ? pct(razao(Number(r.sucessos || 0), Number(r.conversas || 0))) : '…'}</td>
+                    <td>{resumo ? pct(razao(Number(r.conversoes || 0), Number(r.conversas || 0))) : '…'}</td>
                     <td>{c.followup_ativo ? <Chip tom="verde">Ativo</Chip> : <Chip>Desativado</Chip>}</td>
-                    <td>{quando(r.ultima_msg_em)}</td>
-                    <td className="dir"><button className="btn-claro" onClick={() => abrir(c.id)}>Abrir</button></td>
+                    <td><button className="btn-claro" onClick={() => abrir(c.id)}>Abrir</button></td>
                   </tr>
                 )
               })}
             </tbody>
           </table>
         </div>
-        <p className="nota">"Abrir" leva ao Dashboard do cliente escolhido. Clique no nome para ver os acessos.</p>
+        <p className="nota">"Abrir" leva ao Dashboard do cliente escolhido. Clique no nome para ver os acessos. Números do período escolhido acima.</p>
       </Card>
 
       <section className="linha">
