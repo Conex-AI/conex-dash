@@ -74,20 +74,36 @@ revoke all on schema backup from public, anon, authenticated;
 alter table if exists public.backup_mensagens        set schema backup;
 alter table if exists public.backup_eventos_conversa set schema backup;
 
--- Cada linha de mensagens/eventos tem a coluna cliente_id, então um backup sempre
--- sabe de qual cliente é cada linha. Você pode fazer backup de todos de uma vez (3.1)
--- ou só de um cliente (3.1b, com o slug no nome da tabela).
+-- O que cada backup guarda (tabelas com o mesmo final de nome formam um "conjunto"):
+--   mensagens_<nome>  → todas as mensagens          (histórico das conversas)
+--   eventos_<nome>    → todos os eventos            (base de todas as métricas)
+--   clientes_<nome>   → cadastro do(s) cliente(s)   (nome, slug, follow-up, link da foto)
+--   perfis_<nome>     → quem acessa o quê, com o e-mail de cada login
+--   logins_<nome>     → lista dos logins (e-mail, criação, último acesso) — SEM senha
+--   funcoes_<nome>    → código das funções e views do painel (só no backup de todos)
+-- Não dá para guardar por SQL: as senhas (o Supabase não devolve) e os arquivos de
+-- imagem do Storage (baixe a foto em Storage → fotos, se quiser guardar).
 
--- 3.1 Backup de TODOS os clientes (nome: mensagens_todos_20261102_1445)
+-- 3.1 Backup COMPLETO de todos os clientes (final do nome: todos_20261102_1445)
 do $$
-declare s text := to_char(now() at time zone 'America/Sao_Paulo', 'YYYYMMDD_HH24MI');
+declare s text := 'todos_' || to_char(now() at time zone 'America/Sao_Paulo', 'YYYYMMDD_HH24MI');
 begin
-  execute format('create table backup.%I as select * from public.mensagens', 'mensagens_todos_' || s);
-  execute format('create table backup.%I as select * from public.eventos_conversa', 'eventos_todos_' || s);
-  raise notice 'Backup criado: backup.mensagens_todos_% e backup.eventos_todos_%', s, s;
+  execute format('create table backup.%I as select * from public.mensagens', 'mensagens_' || s);
+  execute format('create table backup.%I as select * from public.eventos_conversa', 'eventos_' || s);
+  execute format('create table backup.%I as select * from public.clientes', 'clientes_' || s);
+  execute format('create table backup.%I as select p.*, u.email from public.perfis p left join auth.users u on u.id = p.user_id', 'perfis_' || s);
+  execute format('create table backup.%I as select id as user_id, email, created_at, last_sign_in_at from auth.users', 'logins_' || s);
+  execute format($f$create table backup.%I as
+      select p.proname::text as nome, 'função' as tipo, pg_get_functiondef(p.oid) as definicao
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.prokind = 'f'
+      union all
+      select viewname::text, 'view', 'create or replace view public.' || viewname || ' as ' || definition
+      from pg_views where schemaname = 'public'$f$, 'funcoes_' || s);
+  raise notice 'Backup completo criado com o final: %', s;
 end $$;
 
--- 3.1b Backup de UM cliente (nome: mensagens_jubeauty_20261102_1445). Troque o slug na 1ª linha.
+-- 3.1b Backup COMPLETO de UM cliente (final do nome: jubeauty_20261102_1445). Troque o slug na 1ª linha.
 do $$
 declare
   v_slug text := 'jubeauty';
@@ -97,53 +113,105 @@ begin
   if v_id is null then raise exception 'Cliente % não encontrado', v_slug; end if;
   execute format('create table backup.%I as select * from public.mensagens where cliente_id = %L', 'mensagens_' || s, v_id);
   execute format('create table backup.%I as select * from public.eventos_conversa where cliente_id = %L', 'eventos_' || s, v_id);
-  raise notice 'Backup criado: backup.mensagens_% e backup.eventos_%', s, s;
+  execute format('create table backup.%I as select * from public.clientes where id = %L', 'clientes_' || s, v_id);
+  execute format('create table backup.%I as select p.*, u.email from public.perfis p left join auth.users u on u.id = p.user_id where p.cliente_id = %L', 'perfis_' || s, v_id);
+  execute format('create table backup.%I as select u.id as user_id, u.email, u.created_at, u.last_sign_in_at from auth.users u join public.perfis p on p.user_id = u.id where p.cliente_id = %L', 'logins_' || s, v_id);
+  raise notice 'Backup do cliente % criado com o final: %', v_slug, s;
 end $$;
 
--- 3.2 Ver os backups: de qual cliente é cada parte, quantas linhas e de quando a quando
-select t.table_name                                    as backup,
-       coalesce(cl.nome, '(cliente apagado)')          as cliente,
+-- 3.2 Ver os backups: cada tabela, de qual cliente, quantas linhas e de quando a quando
+select t.table_name                                         as tabela,
+       coalesce(cl.nome, case when x.cliente_id is null then '—' else '(cliente apagado)' end) as cliente,
        x.linhas,
-       x.de  at time zone 'America/Sao_Paulo'          as dados_de,
-       x.ate at time zone 'America/Sao_Paulo'          as dados_ate
+       x.de  at time zone 'America/Sao_Paulo'               as dados_de,
+       x.ate at time zone 'America/Sao_Paulo'               as dados_ate
 from information_schema.tables t
+cross join lateral (
+  select exists (select 1 from information_schema.columns c where c.table_schema = 'backup' and c.table_name = t.table_name and c.column_name = 'cliente_id') as tem_cliente,
+         exists (select 1 from information_schema.columns c where c.table_schema = 'backup' and c.table_name = t.table_name and c.column_name = 'created_at') as tem_data
+) col
 cross join lateral xmltable('/table/row'
   passing query_to_xml(format(
-    'select cliente_id, count(*) as linhas, min(created_at) as de, max(created_at) as ate from backup.%I group by cliente_id',
-    t.table_name), false, false, '')
+    'select %s as cliente_id, count(*) as linhas, %s as de, %s as ate from backup.%I %s',
+    case when col.tem_cliente then 'cliente_id' else 'null::uuid' end,
+    case when col.tem_data then 'min(created_at)' else 'null::timestamptz' end,
+    case when col.tem_data then 'max(created_at)' else 'null::timestamptz' end,
+    t.table_name,
+    case when col.tem_cliente then 'group by cliente_id' else '' end), false, false, '')
   columns cliente_id uuid path 'cliente_id', linhas int path 'linhas',
           de timestamptz path 'de', ate timestamptz path 'ate') x
 left join clientes cl on cl.id = x.cliente_id
 where t.table_schema = 'backup'
 order by t.table_name, cl.nome;
 
--- 3.3 Restaurar um backup (troque <nome> pelo final do nome da tabela, ex.: jubeauty_20261102_1445
---     ou todos_20261102_1445). Não duplica: linhas que já existem são ignoradas.
+-- 3.3 Restaurar um conjunto de backup (troque <nome> pelo final, ex.: jubeauty_20261102_1445).
+--     Ordem: cliente → mensagens/eventos → acessos. Não duplica nada que já existe.
+--     Funciona mesmo que as tabelas tenham ganhado colunas novas depois do backup.
 begin;
-insert into public.mensagens        overriding system value select * from backup."mensagens_<nome>" on conflict do nothing;
-insert into public.eventos_conversa overriding system value select * from backup."eventos_<nome>"   on conflict do nothing;
-select setval(pg_get_serial_sequence('public.mensagens', 'id'),        (select coalesce(max(id), 1) from public.mensagens));
-select setval(pg_get_serial_sequence('public.eventos_conversa', 'id'), (select coalesce(max(id), 1) from public.eventos_conversa));
-commit;
-
--- 3.3b Restaurar só UM cliente a partir de um backup de todos
-begin;
+insert into public.clientes
+  select (jsonb_populate_record(null::public.clientes, to_jsonb(b))).* from backup."clientes_<nome>" b
+  on conflict (id) do nothing;
 insert into public.mensagens overriding system value
-  select * from backup."mensagens_<nome>" where cliente_id = (select id from clientes where slug = 'jubeauty')
+  select (jsonb_populate_record(null::public.mensagens, to_jsonb(b))).* from backup."mensagens_<nome>" b
   on conflict do nothing;
 insert into public.eventos_conversa overriding system value
-  select * from backup."eventos_<nome>" where cliente_id = (select id from clientes where slug = 'jubeauty')
+  select (jsonb_populate_record(null::public.eventos_conversa, to_jsonb(b))).* from backup."eventos_<nome>" b
   on conflict do nothing;
+-- acessos: religa pelo e-mail (o login precisa existir em Authentication → Users)
+insert into public.perfis (user_id, papel, cliente_id)
+  select u.id, b.papel, b.cliente_id from backup."perfis_<nome>" b
+  join auth.users u on lower(u.email) = lower(b.email)
+  on conflict (user_id) do update set papel = excluded.papel, cliente_id = excluded.cliente_id;
 select setval(pg_get_serial_sequence('public.mensagens', 'id'),        (select coalesce(max(id), 1) from public.mensagens));
 select setval(pg_get_serial_sequence('public.eventos_conversa', 'id'), (select coalesce(max(id), 1) from public.eventos_conversa));
 commit;
 
--- 3.4 Apagar um backup que não precisa mais
-drop table if exists backup."mensagens_<nome>", backup."eventos_<nome>";
+-- 3.3b Restaurar só UM cliente a partir de um backup de todos (troque o slug e o <nome>)
+begin;
+insert into public.clientes
+  select (jsonb_populate_record(null::public.clientes, to_jsonb(b))).* from backup."clientes_<nome>" b
+  where b.slug = 'jubeauty'
+  on conflict (id) do nothing;
+insert into public.mensagens overriding system value
+  select (jsonb_populate_record(null::public.mensagens, to_jsonb(b))).* from backup."mensagens_<nome>" b
+  where b.cliente_id = (select id from backup."clientes_<nome>" where slug = 'jubeauty')
+  on conflict do nothing;
+insert into public.eventos_conversa overriding system value
+  select (jsonb_populate_record(null::public.eventos_conversa, to_jsonb(b))).* from backup."eventos_<nome>" b
+  where b.cliente_id = (select id from backup."clientes_<nome>" where slug = 'jubeauty')
+  on conflict do nothing;
+insert into public.perfis (user_id, papel, cliente_id)
+  select u.id, b.papel, b.cliente_id from backup."perfis_<nome>" b
+  join auth.users u on lower(u.email) = lower(b.email)
+  where b.cliente_id = (select id from backup."clientes_<nome>" where slug = 'jubeauty')
+  on conflict (user_id) do update set papel = excluded.papel, cliente_id = excluded.cliente_id;
+select setval(pg_get_serial_sequence('public.mensagens', 'id'),        (select coalesce(max(id), 1) from public.mensagens));
+select setval(pg_get_serial_sequence('public.eventos_conversa', 'id'), (select coalesce(max(id), 1) from public.eventos_conversa));
+commit;
 
+-- 3.3c Logins que estão no backup mas não existem mais (recrie em Authentication → Users,
+--      depois rode o 3.3 de novo para religar os acessos; a pessoa usa "Esqueci minha senha")
+select b.email, b.papel from backup."perfis_<nome>" b
+where not exists (select 1 from auth.users u where lower(u.email) = lower(b.email));
+
+-- 3.3d Ver o código das funções/views guardado num backup completo (para recriar alguma)
+select nome, tipo, definicao from backup."funcoes_<nome>" order by tipo, nome;
+
+-- 3.4 Apagar um conjunto de backup inteiro (todas as tabelas com aquele final)
+do $$
+declare v_nome text := '<nome>';  -- ex.: jubeauty_20261102_1445
+        r record;
+begin
+  for r in select table_name from information_schema.tables
+           where table_schema = 'backup' and table_name like '%\_' || v_nome escape '\'
+  loop
+    execute format('drop table backup.%I', r.table_name);
+    raise notice 'Apagada: backup.%', r.table_name;
+  end loop;
+end $$;
 
 -- =============================================================================
--- 4. LIMPAR DADOS (não tem volta — faça o backup 3.1 antes)
+-- 4. LIMPAR DADOS (não tem volta — faça o backup 3.1 ou 3.1b antes)
 -- =============================================================================
 
 -- 4.1 Zerar o painel de UM cliente (mantém cliente, logins e foto)
