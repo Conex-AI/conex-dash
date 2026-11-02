@@ -1,18 +1,34 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { supabase, DEMO, configurado } from './supabase'
 import { carregarPerfil, carregarClientes } from './api'
 import { ICONES } from './components/Icones'
 import Login from './Login'
 import Dashboard from './pages/Dashboard'
-import Conversas from './pages/Conversas'
-import Metricas from './pages/Metricas'
-import Pix from './pages/Pix'
-import Followup from './pages/Followup'
-import Clientes from './pages/Clientes'
 import NovaSenha from './NovaSenha'
-import Perfil, { Foto } from './pages/Perfil'
+import { Foto } from './components/Foto'
+import { Esqueleto } from './components/Ui'
 import { Marca } from './components/Marca'
 import { useTema } from './lib/tema'
+import { preCarregar, useCarregandoAlgo, queryClient } from './lib/consultas'
+import { usePeriodo } from './components/Periodo'
+
+// Cada aba vira um arquivo separado (o primeiro acesso fica mais leve).
+// Logo depois de entrar, todos são baixados em segundo plano para a troca de aba ser instantânea.
+const TELAS = {
+  conversas: () => import('./pages/Conversas'),
+  metricas: () => import('./pages/Metricas'),
+  pix: () => import('./pages/Pix'),
+  followup: () => import('./pages/Followup'),
+  clientes: () => import('./pages/Clientes'),
+  perfil: () => import('./pages/Perfil'),
+}
+const Conversas = lazy(TELAS.conversas)
+const Metricas = lazy(TELAS.metricas)
+const Pix = lazy(TELAS.pix)
+const Followup = lazy(TELAS.followup)
+const Clientes = lazy(TELAS.clientes)
+const Perfil = lazy(TELAS.perfil)
+const quandoOcioso = (f) => (window.requestIdleCallback ? window.requestIdleCallback(f, { timeout: 2000 }) : setTimeout(f, 300))
 import { useRota, endereco, cliqueInterno } from './lib/rota'
 
 const ABAS = [
@@ -38,6 +54,8 @@ export default function App() {
   const [clienteId, setClienteId] = useState(null)
   const [rota, ir] = useRota()
   const [tema, setTema] = useTema()
+  const periodo = usePeriodo()
+  const carregando = useCarregandoAlgo()
   const [erro, setErro] = useState('')
   const [recuperando, setRecuperando] = useState(false)
 
@@ -94,6 +112,20 @@ export default function App() {
     if (slug && (slug !== rota.cliente || aba !== rota.aba)) ir(aba, slug, true)
   }, [perfil, clienteId, clientes, rota.aba, rota.cliente]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Pré-carrega as telas e os dados das outras abas em segundo plano
+  const clienteAtual = clientes.find((c) => c.id === clienteId)
+  const ehAdmin = perfil?.papel === 'admin'
+  useEffect(() => {
+    if (!clienteAtual) return
+    quandoOcioso(() => {
+      Object.values(TELAS).forEach((f) => f())
+      ;['dashboard', 'conversas', 'metricas', 'pix', 'followup', 'clientes'].forEach((a) => preCarregar(a, clienteAtual, periodo, ehAdmin))
+    })
+  }, [clienteAtual?.id, periodo.de, periodo.ate, ehAdmin]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Saiu da conta: limpa o cache para o próximo login não ver dados do anterior
+  useEffect(() => { if (sessao === null) queryClient.clear() }, [sessao])
+
   if (!configurado && !DEMO) {
     return <div className="login-tela"><div className="erro">Faltam as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no ambiente. Depois de salvar, reinicie o app.</div></div>
   }
@@ -146,6 +178,7 @@ export default function App() {
         <nav className="nav" aria-label="Principal">
           {abas.map((a) => (
             <a key={a.id} href={endereco(a.id, cliente?.slug)} className={aba === a.id ? 'ativa' : ''} aria-current={aba === a.id ? 'page' : undefined}
+              onMouseEnter={() => { TELAS[a.id]?.(); preCarregar(a.id, cliente, periodo, admin) }}
               onClick={(e) => { if (cliqueInterno(e)) { e.preventDefault(); irPara(a.id) } }}>
               {ICONES[a.id]}{a.nome}
             </a>
@@ -157,12 +190,13 @@ export default function App() {
         </div>
       </aside>
 
+      {carregando && <div className="barra-progresso" role="progressbar" aria-label="Atualizando dados" />}
       <main className="main">
         {erro && <div className="erro">{erro}</div>}
-        {!erro && !perfil && <div className="carregando">Carregando…</div>}
+        {!erro && !perfil && <Esqueleto />}
         {perfil && !cliente && <div className="vazio">Nenhum cliente vinculado ao seu usuário.</div>}
         {perfil && cliente && (
-          <>
+          <Suspense fallback={<Esqueleto />}>
             {aba === 'dashboard' && <Dashboard cliente={cliente} irPara={irPara} />}
             {aba === 'conversas' && <Conversas cliente={cliente} />}
             {aba === 'perfil' && (
@@ -177,7 +211,7 @@ export default function App() {
                 onNovoCliente={(c) => setClientes((l) => [...l, c].sort((a, b) => a.nome.localeCompare(b.nome)))}
                 abrir={(id) => escolherCliente(id, 'dashboard')} />
             )}
-          </>
+          </Suspense>
         )}
       </main>
     </div>

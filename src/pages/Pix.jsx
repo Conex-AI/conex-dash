@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react'
-import { carregarPix } from '../api'
+import { useDados, consultasDaAba } from '../lib/consultas'
 import { TZ } from '../lib/datas'
 import { duracao, num, pct, razao, reais, capitaliza } from '../lib/metricas'
-import { Barra, Cabecalho, Card, Chip, Kpi } from '../components/Ui'
+import { Barra, Cabecalho, Card, Chip, Kpi, Esqueleto } from '../components/Ui'
 import { usePeriodo, SeletorPeriodo } from '../components/Periodo'
 
 function quando(iso) {
@@ -25,17 +24,8 @@ function valorTexto(v) {
 
 export default function Pix({ cliente }) {
   const p = usePeriodo(30)
-  const [d, setD] = useState(null)
-  const [erro, setErro] = useState('')
-
-  useEffect(() => {
-    let ativo = true
-    setD(null); setErro('')
-    carregarPix(cliente.id, p.de, p.ate)
-      .then((x) => ativo && setD(x))
-      .catch((e) => ativo && setErro(e.message))
-    return () => { ativo = false }
-  }, [cliente.id, p.de, p.ate])
+  const { dados: r, erro, antigos } = useDados(consultasDaAba('pix', cliente, p))
+  const d = r?.[0] ?? null
 
   const topo = d ? Math.max(Number(d.solicitados), Number(d.comprovantes), 1) : 1
   const semComprovante = d ? Math.max(0, Number(d.solicitados) - Number(d.comprovantes)) : 0
@@ -46,10 +36,10 @@ export default function Pix({ cliente }) {
         <SeletorPeriodo p={p} />
       </Cabecalho>
       {erro && <div className="erro">{erro}</div>}
-      {!d && !erro && <div className="carregando">Carregando…</div>}
+      {!d && !erro && <Esqueleto />}
 
       {d && (
-        <>
+        <div className={`conteudo ${antigos ? 'atualizando' : ''}`}>
           <section className="kpis" aria-label="Indicadores">
             <Kpi rotulo="Sinais solicitados" valor={num(d.solicitados)} nota="clientes que receberam a chave Pix" />
             <Kpi rotulo="Comprovantes recebidos" valor={num(d.comprovantes)} nota={`${pct(razao(Number(d.comprovantes), Number(d.solicitados)))} dos pedidos`} />
@@ -108,7 +98,7 @@ export default function Pix({ cliente }) {
               <div><b>Favorecido</b><span>Precisa ser a conta combinada. Quem confirma o pagamento é sempre a Juliana.</span></div>
             </div>
           </Card>
-        </>
+        </div>
       )}
     </>
   )

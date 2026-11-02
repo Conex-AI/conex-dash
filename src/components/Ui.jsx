@@ -49,3 +49,16 @@ export function Cabecalho({ titulo, sub, children }) {
     </header>
   )
 }
+
+// Esqueleto de carregamento: a página aparece com o formato final enquanto os dados chegam.
+export function Esqueleto() {
+  return (
+    <div className="esqueleto" aria-busy="true" aria-label="Carregando">
+      <div className="kpis">{[0, 1, 2, 3].map((i) => <div key={i} className="esq-bloco" style={{ height: 118 }} />)}</div>
+      <div className="linha">
+        <div className="esq-bloco f3" style={{ height: 320 }} />
+        <div className="esq-bloco f2" style={{ height: 320 }} />
+      </div>
+    </div>
+  )
+}

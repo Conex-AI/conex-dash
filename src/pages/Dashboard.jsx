@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
-import { carregarMetricas, carregarDashboard } from '../api'
+import { useMemo } from 'react'
+import { useDados, consultasDaAba } from '../lib/consultas'
 import {
   indicadores, deltaPct, deltaPts, deltaAbs, etapasFunil, serieDiaria, horariosPico, csvDiario, num, pct,
 } from '../lib/metricas'
-import { Cabecalho, Kpi } from '../components/Ui'
+import { Cabecalho, Kpi, Esqueleto } from '../components/Ui'
 import { usePeriodo, SeletorPeriodo } from '../components/Periodo'
 import { distribuicao, GraficoDiario, ComoTerminaram, Funil, Motivos, Pico, ProcedimentosPedidos, PixAtendimento } from '../components/Blocos'
 
@@ -18,21 +18,8 @@ export function baixarCsv(rows, nome) {
 
 export default function Dashboard({ cliente, irPara }) {
   const p = usePeriodo()
-  const [dados, setDados] = useState(null)
-  const [erro, setErro] = useState('')
-
-  useEffect(() => {
-    let ativo = true
-    setDados(null); setErro('')
-    Promise.all([
-      carregarMetricas(cliente.id, p.de),
-      carregarDashboard(cliente.id, p.de, p.ate),
-      carregarDashboard(cliente.id, p.antDe, p.antAte),
-    ])
-      .then(([diario, atual, anterior]) => ativo && setDados({ diario: diario.filter((r) => r.dia <= p.ate), atual, anterior }))
-      .catch((e) => ativo && setErro(e.message))
-    return () => { ativo = false }
-  }, [cliente.id, p.de, p.ate, p.antDe, p.antAte])
+  const { dados: r, erro, antigos } = useDados(consultasDaAba('dashboard', cliente, p))
+  const dados = useMemo(() => r && ({ diario: r[0].filter((x) => x.dia <= p.ate), atual: r[1], anterior: r[2] }), [r, p.ate])
 
   const v = useMemo(() => {
     if (!dados) return null
@@ -62,10 +49,10 @@ export default function Dashboard({ cliente, irPara }) {
       </Cabecalho>
 
       {erro && <div className="erro">{erro}</div>}
-      {!v && !erro && <div className="carregando">Carregando…</div>}
+      {!v && !erro && <Esqueleto />}
 
       {v && (
-        <>
+        <div className={`conteudo ${antigos ? 'atualizando' : ''}`}>
           <section className="kpis" aria-label="Indicadores">
             <Kpi rotulo="Conversas" valor={num(v.k.conversas)} chip={v.chips.conversas} nota="vs. período anterior" />
             <Kpi rotulo="Taxa de sucesso" valor={pct(v.k.taxaSucesso)} chip={v.chips.sucesso} nota={`${num(v.k.sucessos)} de ${num(v.k.conversas)} conversas`} />
@@ -98,7 +85,7 @@ export default function Dashboard({ cliente, irPara }) {
               <button className="btn-claro" onClick={() => irPara('followup')}>Ver Follow-up</button>
             </section>
           )}
-        </>
+        </div>
       )}
     </>
   )

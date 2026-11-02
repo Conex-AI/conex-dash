@@ -31,8 +31,8 @@ export function GraficoDiario({ serie, className = 'f3' }) {
               interval={Math.max(0, Math.floor(serie.length / 8) - 1)} />
             <YAxis tickLine={false} axisLine={false} fontSize={12} allowDecimals={false} />
             <Tooltip contentStyle={TOOLTIP} />
-            <Line type="monotone" dataKey="Conversas" stroke={COR.azul} strokeWidth={2.5} dot={false} />
-            <Line type="monotone" dataKey="Confirmadas" stroke={COR.verde} strokeWidth={2.5} dot={false} />
+            <Line type="monotone" dataKey="Conversas" stroke={COR.azul} strokeWidth={2.5} dot={false} animationDuration={350} />
+            <Line type="monotone" dataKey="Confirmadas" stroke={COR.verde} strokeWidth={2.5} dot={false} animationDuration={350} />
           </LineChart>
         </ResponsiveContainer>
       </div>

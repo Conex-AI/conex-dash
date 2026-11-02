@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { carregarDashboard, carregarMetricas, carregarMetricasTela, carregarPix, carregarFollowup } from '../api'
+import { useDados, consultasDaAba } from '../lib/consultas'
 import {
   indicadores, deltaPct, deltaPts, deltaAbs, etapasFunil, serieDiaria, horariosPico,
   duracao, decimal, num, pct, razao, reais, rotuloMotivo, capitaliza,
 } from '../lib/metricas'
-import { Barra, Cabecalho, Card, Kpi } from '../components/Ui'
+import { Barra, Cabecalho, Card, Kpi, Esqueleto } from '../components/Ui'
 import { usePeriodo, SeletorPeriodo } from '../components/Periodo'
 import { distribuicao, GraficoDiario, ComoTerminaram, Funil, Motivos, Pico, PixAtendimento } from '../components/Blocos'
 import { baixarCsv } from './Dashboard'
@@ -25,24 +25,10 @@ function Secao({ titulo, sub }) {
 
 export default function Metricas({ cliente, irPara }) {
   const p = usePeriodo()
-  const [dados, setDados] = useState(null)
-  const [erro, setErro] = useState('')
-
-  useEffect(() => {
-    let ativo = true
-    setDados(null); setErro('')
-    Promise.all([
-      carregarMetricasTela(cliente.id, p.de, p.ate),
-      carregarDashboard(cliente.id, p.de, p.ate),
-      carregarDashboard(cliente.id, p.antDe, p.antAte),
-      carregarMetricas(cliente.id, p.de),
-      carregarPix(cliente.id, p.de, p.ate),
-      cliente.followup_ativo ? carregarFollowup(cliente.id, p.de, p.ate) : Promise.resolve(null),
-    ])
-      .then(([m, atual, anterior, diario, pix, fup]) => ativo && setDados({ m, atual, anterior, diario: diario.filter((r) => r.dia <= p.ate), pix, fup }))
-      .catch((e) => ativo && setErro(e.message))
-    return () => { ativo = false }
-  }, [cliente.id, cliente.followup_ativo, p.de, p.ate, p.antDe, p.antAte])
+  const { dados: r, erro, antigos } = useDados(consultasDaAba('metricas', cliente, p))
+  const dados = useMemo(() => r && ({
+    m: r[0], atual: r[1], anterior: r[2], diario: r[3].filter((x) => x.dia <= p.ate), pix: r[4], fup: r[5] || null,
+  }), [r, p.ate])
 
   const v = useMemo(() => {
     if (!dados) return null
@@ -88,10 +74,10 @@ export default function Metricas({ cliente, irPara }) {
         <button className="btn-claro" onClick={() => baixarCsv(dados.diario, `conex-${cliente.slug}-metricas-${p.de}-a-${p.ate}.csv`)} disabled={!dados}>Exportar</button>
       </Cabecalho>
       {erro && <div className="erro">{erro}</div>}
-      {!v && !erro && <div className="carregando">Carregando…</div>}
+      {!v && !erro && <Esqueleto />}
 
       {v && (
-        <>
+        <div className={`conteudo ${antigos ? 'atualizando' : ''}`}>
           <Secao titulo="Visão geral" sub="Comparado com o período anterior do mesmo tamanho" />
           <section className="kpis" aria-label="Visão geral">
             <Kpi rotulo="Conversas" valor={num(v.k.conversas)} chip={v.chips.conversas} nota="vs. período anterior" />
@@ -123,7 +109,7 @@ export default function Metricas({ cliente, irPara }) {
                       <YAxis tickLine={false} axisLine={false} fontSize={12} domain={[0, 100]} unit="%" />
                       <Tooltip cursor={{ fill: 'var(--primary-soft)' }} formatter={(x) => [`${String(x).replace('.', ',')}%`, 'Sucesso']}
                         labelFormatter={(l) => `Semana de ${l}`} contentStyle={TOOLTIP} />
-                      <Bar dataKey="taxa" fill="#3b7bff" radius={[6, 6, 0, 0]} maxBarSize={56} />
+                      <Bar dataKey="taxa" fill="#3b7bff" radius={[6, 6, 0, 0]} maxBarSize={56} animationDuration={350} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -241,7 +227,7 @@ export default function Metricas({ cliente, irPara }) {
               <Kpi rotulo="Agendamentos recuperados" valor={num(v.totFup.conversoes)} nota="dentro de 48h do último follow-up" />
             </section>
           )}
-        </>
+        </div>
       )}
     </>
   )

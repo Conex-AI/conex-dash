@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { carregarConversas, carregarMensagens, carregarEventos } from '../api'
+import { useDados, q, queryClient } from '../lib/consultas'
 import { TZ } from '../lib/datas'
 import { Cabecalho, Chip } from '../components/Ui'
 
@@ -55,34 +55,31 @@ function dataLonga(d) {
 const rotuloMsg = (m) => m.conteudo || ({ audio: '[áudio]', imagem: '[imagem]', foto_enviada: '[foto enviada]', video_enviado: '[vídeo enviado]' }[m.tipo] || '[mídia]')
 
 export default function Conversas({ cliente }) {
-  const [linhas, setLinhas] = useState(null)
-  const [erro, setErro] = useState('')
   const [busca, setBusca] = useState('')
   const [filtro, setFiltro] = useState('todos')
   const [sel, setSel] = useState(null)
-  const [det, setDet] = useState(null)
-  const [erroDet, setErroDet] = useState('')
   const rolagem = useRef(null)
   const [noFim, setNoFim] = useState(true)
 
-  useEffect(() => {
-    let ativo = true
-    setLinhas(null); setErro(''); setSel(null)
-    carregarConversas(cliente.id)
-      .then((d) => { if (!ativo) return; setLinhas(d); setSel(d[0]?.telefone ?? null) })
-      .catch((e) => ativo && setErro(e.message))
-    return () => { ativo = false }
-  }, [cliente.id])
+  const lista = useDados([q.conversas(cliente.id)])
+  const linhas = lista.dados?.[0] ?? null
+  const erro = lista.erro
 
+  // trocou de cliente: volta para a primeira conversa
+  useEffect(() => { setSel(null) }, [cliente.id])
   useEffect(() => {
-    if (!sel) { setDet(null); return }
-    let ativo = true
-    setDet(null); setErroDet('')
-    Promise.all([carregarMensagens(cliente.id, sel), carregarEventos(cliente.id, sel)])
-      .then(([mensagens, eventos]) => ativo && setDet({ mensagens, eventos }))
-      .catch((e) => ativo && setErroDet(e.message))
-    return () => { ativo = false }
-  }, [cliente.id, sel])
+    if (linhas && (!sel || !linhas.some((c) => c.telefone === sel))) setSel(linhas[0]?.telefone ?? null)
+  }, [linhas, sel])
+
+  const detalhe = useDados(sel ? [q.mensagens(cliente.id, sel), q.eventos(cliente.id, sel)] : [], Boolean(sel))
+  const det = useMemo(() => detalhe.dados && ({ mensagens: detalhe.dados[0], eventos: detalhe.dados[1] }), [detalhe.dados])
+  const erroDet = detalhe.erro
+
+  // passar o mouse numa conversa já busca as mensagens dela
+  function preCarregarConversa(tel) {
+    queryClient.prefetchQuery(q.mensagens(cliente.id, tel))
+    queryClient.prefetchQuery(q.eventos(cliente.id, tel))
+  }
 
   const visiveis = useMemo(() => {
     if (!linhas) return []
@@ -122,10 +119,11 @@ export default function Conversas({ cliente }) {
   }, [det])
 
   // abre a conversa já no fim (mensagem mais recente)
+  const temDet = Boolean(det)
   useEffect(() => {
     const el = rolagem.current
-    if (el && det) { el.scrollTop = el.scrollHeight; setNoFim(true) }
-  }, [det])
+    if (el && temDet) { el.scrollTop = el.scrollHeight; setNoFim(true) }
+  }, [sel, temDet])
   function aoRolar(e) {
     const el = e.currentTarget
     setNoFim(el.scrollHeight - el.scrollTop - el.clientHeight < 80)
@@ -159,7 +157,7 @@ export default function Conversas({ cliente }) {
             {visiveis.map((c) => {
               const [rotulo, tom] = DESFECHO[c.ultimo_desfecho] || ['Em andamento', 'laranja']
               return (
-                <button key={c.telefone} className={`conv-item ${c.telefone === sel ? 'ativa' : ''}`} onClick={() => setSel(c.telefone)}>
+                <button key={c.telefone} className={`conv-item ${c.telefone === sel ? 'ativa' : ''}`} onClick={() => setSel(c.telefone)} onMouseEnter={() => preCarregarConversa(c.telefone)} onFocus={() => preCarregarConversa(c.telefone)}>
                   <span className="conv-avatar" aria-hidden="true">{iniciaisNome(c.nome_wpp)}</span>
                   <span className="conv-item-corpo">
                     <span className="conv-linha"><b>{c.nome_wpp || mascara(c.telefone)}</b><em>{quando(c.ultima_msg_em)}</em></span>

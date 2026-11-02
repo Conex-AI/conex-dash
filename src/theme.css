@@ -470,3 +470,17 @@ a { color: inherit; text-decoration: none; }
 .secao { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 14px 4px 0; }
 .secao h2 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
 .secao span { font-size: 13px; color: var(--text-muted); }
+
+/* ---------- carregamento ---------- */
+.barra-progresso { position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 50; overflow: hidden; background: transparent; }
+.barra-progresso::after { content: ''; position: absolute; top: 0; bottom: 0; width: 35%; background: var(--primary);
+  border-radius: 2px; animation: progresso 1.1s ease-in-out infinite; }
+@keyframes progresso { from { left: -35%; } to { left: 100%; } }
+.conteudo { display: flex; flex-direction: column; gap: 16px; transition: opacity .2s; }
+.conteudo.atualizando { opacity: 0.6; }
+.esqueleto { display: flex; flex-direction: column; gap: 16px; }
+.esq-bloco { border-radius: 18px; border: 1px solid var(--border);
+  background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 50%, var(--surface) 100%); background-size: 200% 100%;
+  animation: brilho 1.4s ease-in-out infinite; }
+@keyframes brilho { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .esq-bloco, .barra-progresso::after { animation: none; } }

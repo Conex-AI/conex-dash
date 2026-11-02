@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
-import { carregarClientesResumo, carregarAcessos, vincularAcesso, criarCliente, redefinirSenha } from '../api'
+import { useState } from 'react'
+import { vincularAcesso, criarCliente, redefinirSenha } from '../api'
+import { useDados, q, queryClient } from '../lib/consultas'
 import { TZ } from '../lib/datas'
 import { num, pct, razao } from '../lib/metricas'
 import { Cabecalho, Card, Chip, Kpi } from '../components/Ui'
 import { usePeriodo, SeletorPeriodo } from '../components/Periodo'
-import { Foto } from './Perfil'
+import { Foto } from '../components/Foto'
 
 function iniciais(nome = '') {
   const p = nome.trim().split(/\s+/).filter(Boolean)
@@ -26,28 +27,17 @@ function erroAmigavel(e) {
 
 export default function Clientes({ clientes, clienteAtual, onNovoCliente, abrir }) {
   const p = usePeriodo(30)
-  const [resumo, setResumo] = useState(null)
-  const [erro, setErro] = useState('')
   const [sel, setSel] = useState(clienteAtual?.id || clientes[0]?.id)
-  const [acessos, setAcessos] = useState(null)
   const [aviso, setAviso] = useState('')
   const [novo, setNovo] = useState(null)        // { nome } quando o formulário está aberto
   const [acesso, setAcesso] = useState(null)    // { email, papel }
 
-  useEffect(() => {
-    let ativo = true
-    setResumo(null); setErro('')
-    carregarClientesResumo(p.de, p.ate)
-      .then((x) => ativo && setResumo(x))
-      .catch((e) => ativo && setErro(e.message))
-    return () => { ativo = false }
-  }, [p.de, p.ate, clientes.length])
-
-  function recarregarAcessos(id) {
-    setAcessos(null)
-    carregarAcessos(id).then(setAcessos).catch((e) => setAviso(erroAmigavel(e)))
-  }
-  useEffect(() => { if (sel) recarregarAcessos(sel) }, [sel])
+  const res = useDados([q.clientesResumo(p.de, p.ate)])
+  const resumo = res.dados?.[0] ?? null
+  const erro = res.erro
+  const ac = useDados(sel ? [q.acessos(sel)] : [], Boolean(sel))
+  const acessos = ac.dados?.[0] ?? null
+  const recarregarAcessos = (id) => queryClient.invalidateQueries({ queryKey: ['acessos', id] })
 
   const porId = Object.fromEntries((resumo || []).map((r) => [r.cliente_id, r]))
   const soma = (c) => (resumo || []).reduce((a, r) => a + Number(r[c] || 0), 0)
@@ -60,6 +50,7 @@ export default function Clientes({ clientes, clienteAtual, onNovoCliente, abrir 
       const c = await criarCliente(novo.nome.trim(), slugify(novo.nome))
       setNovo(null); setAviso(`Cliente ${c.nome} cadastrado.`)
       onNovoCliente(c); setSel(c.id)
+      queryClient.invalidateQueries({ queryKey: ['clientes-resumo'] })
     } catch (err) { setAviso(erroAmigavel(err)) }
   }
   async function salvarAcesso(e) {
@@ -161,7 +152,8 @@ export default function Clientes({ clientes, clienteAtual, onNovoCliente, abrir 
               <p className="nota" style={{ flexBasis: '100%' }}>O login precisa existir antes: crie em Supabase › Authentication › Users (Add user) e depois libere aqui.</p>
             </form>
           )}
-          {!acessos && <div className="carregando">Carregando…</div>}
+          {ac.erro && <div className="erro">Não foi possível carregar os acessos.</div>}
+          {!acessos && !ac.erro && <div className="carregando">Carregando…</div>}
           {acessos && acessos.length === 0 && <div className="vazio">Nenhum acesso para este cliente.</div>}
           {acessos && acessos.length > 0 && (
             <div className="acessos">

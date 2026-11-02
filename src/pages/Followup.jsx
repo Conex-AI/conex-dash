@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react'
-import { carregarFollowup } from '../api'
+import { useDados, consultasDaAba } from '../lib/consultas'
 import { num, pct, razao } from '../lib/metricas'
-import { Barra, Cabecalho, Card, Kpi } from '../components/Ui'
+import { Barra, Cabecalho, Card, Kpi, Esqueleto } from '../components/Ui'
 import { usePeriodo, SeletorPeriodo } from '../components/Periodo'
 
 const NOME = { 1: '1º follow-up (24h)', 2: '2º follow-up (48h)', 3: '3º follow-up (72h)' }
@@ -9,17 +8,8 @@ const CORES = ['#3b7bff', '#7ba3f5', '#b8cdfb']
 
 export default function Followup({ cliente }) {
   const p = usePeriodo(30)
-  const [d, setD] = useState(null)
-  const [erro, setErro] = useState('')
-
-  useEffect(() => {
-    let ativo = true
-    setD(null); setErro('')
-    carregarFollowup(cliente.id, p.de, p.ate)
-      .then((x) => ativo && setD(x))
-      .catch((e) => ativo && setErro(e.message))
-    return () => { ativo = false }
-  }, [cliente.id, p.de, p.ate])
+  const { dados: r, erro } = useDados(consultasDaAba('followup', cliente, p))
+  const d = r?.[0] ?? null
 
   const tot = d ? d.estagios.reduce((a, s) => ({
     enviados: a.enviados + Number(s.enviados), respostas: a.respostas + Number(s.respostas), conversoes: a.conversoes + Number(s.conversoes),
@@ -43,7 +33,7 @@ export default function Followup({ cliente }) {
       )}
 
       {erro && <div className="erro">{erro}</div>}
-      {!d && !erro && <div className="carregando">Carregando…</div>}
+      {!d && !erro && <Esqueleto />}
 
       {d && tot && (
         <>
