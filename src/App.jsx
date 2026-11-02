@@ -5,7 +5,11 @@ import { ICONES } from './components/Icones'
 import Login from './Login'
 import Dashboard from './pages/Dashboard'
 import Conversas from './pages/Conversas'
-import EmBreve from './pages/EmBreve'
+import Metricas from './pages/Metricas'
+import Pix from './pages/Pix'
+import Followup from './pages/Followup'
+import Clientes from './pages/Clientes'
+import NovaSenha from './NovaSenha'
 
 const ABAS = [
   { id: 'dashboard', nome: 'Dashboard' },
@@ -34,12 +38,16 @@ export default function App() {
   const [clienteId, setClienteId] = useState(null)
   const [aba, setAba] = useState('dashboard')
   const [erro, setErro] = useState('')
+  const [recuperando, setRecuperando] = useState(false)
 
   useEffect(() => {
     if (DEMO) return
     if (!configurado) { setSessao(null); return }
     supabase.auth.getSession().then(({ data }) => setSessao(data.session))
-    const { data } = supabase.auth.onAuthStateChange((_ev, s) => setSessao(s))
+    const { data } = supabase.auth.onAuthStateChange((ev, s) => {
+      setSessao(s)
+      if (ev === 'PASSWORD_RECOVERY') setRecuperando(true)
+    })
     return () => data.subscription.unsubscribe()
   }, [])
 
@@ -71,6 +79,7 @@ export default function App() {
   }
   if (sessao === undefined) return <div className="login-tela"><span className="carregando">Carregando…</span></div>
   if (!sessao) return <Login />
+  if (recuperando) return <NovaSenha aoTerminar={() => setRecuperando(false)} />
 
   const admin = perfil?.papel === 'admin'
   const cliente = clientes.find((c) => c.id === clienteId)
@@ -131,13 +140,14 @@ export default function App() {
           <>
             {aba === 'dashboard' && <Dashboard cliente={cliente} irPara={setAba} />}
             {aba === 'conversas' && <Conversas cliente={cliente} />}
-            {aba === 'metricas' && <EmBreve titulo="Métricas" texto="Como a Jú atende: resolução, repasses e quando as clientes chamam." />}
-            {aba === 'pix' && <EmBreve titulo="Pix" texto="Sinal de reserva: do horário liberado ao agendamento confirmado." />}
-            {aba === 'followup' && (
-              <EmBreve titulo="Follow-up"
-                texto={cliente.followup_ativo ? 'Reativação de conversas em 24h, 48h e 72h.' : 'O follow-up está desativado para este cliente.'} />
+            {aba === 'metricas' && <Metricas cliente={cliente} />}
+            {aba === 'pix' && <Pix cliente={cliente} />}
+            {aba === 'followup' && <Followup cliente={cliente} />}
+            {aba === 'clientes' && admin && (
+              <Clientes clientes={clientes} clienteAtual={cliente}
+                onNovoCliente={(c) => setClientes((l) => [...l, c].sort((a, b) => a.nome.localeCompare(b.nome)))}
+                abrir={(id) => { escolherCliente(id); setAba('dashboard') }} />
             )}
-            {aba === 'clientes' && admin && <EmBreve titulo="Clientes" texto="Todos os clientes e os acessos de cada um." />}
           </>
         )}
       </main>

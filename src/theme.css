@@ -222,3 +222,30 @@ a { color: inherit; text-decoration: none; }
 .linha-tempo i { width: 8px; height: 8px; border-radius: 99px; background: var(--primary-text); margin-top: 5px; flex: none; }
 @media (max-width: 1100px) { .conv { grid-template-columns: 260px minmax(0, 1fr); } .conv-det { grid-column: 1 / -1; } }
 @media (max-width: 700px) { .conv { grid-template-columns: 1fr; } .conv-lista, .conv-chat { max-height: 60vh; } }
+
+/* ---------- métricas / pix / follow-up / clientes ---------- */
+.mapa { width: 100%; border-collapse: separate; border-spacing: 4px; font-size: 12.5px; }
+.mapa th { color: var(--text-muted); font-weight: 500; padding: 4px 6px; text-align: center; }
+.mapa tbody th { text-align: left; }
+.mapa td { text-align: center; padding: 10px 6px; border-radius: 8px; font-weight: 600; min-width: 48px; }
+.confere { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.confere > div { background: var(--surface-2); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 4px; }
+.confere b { font-size: 13.5px; }
+.confere span { font-size: 12.5px; line-height: 1.5; color: var(--text-muted); }
+.colunas { display: flex; align-items: flex-end; gap: 16px; height: 190px; padding-top: 8px; }
+.colunas > div { flex: 1; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; }
+.colunas span { font-size: 12.5px; font-weight: 600; }
+.colunas i { width: 100%; border-radius: 8px; min-height: 4px; }
+.colunas em { font-style: normal; font-size: 12px; color: var(--text-muted); }
+.tabela tr.total td { border-top: 2px solid var(--border); }
+.tabela tr.sel td { background: var(--primary-soft); }
+.cliente-linha { display: flex; align-items: center; gap: 10px; background: none; border: 0; padding: 0; color: var(--text); font: inherit; cursor: pointer; text-align: left; }
+.cliente-linha em, .acessos em { display: block; font-style: normal; font-size: 12px; color: var(--text-muted); }
+.acessos { display: flex; flex-direction: column; }
+.acessos > div { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--border); }
+.acessos > div:first-child { border-top: 0; }
+.acessos > div > span:first-child { flex: 1 1 220px; font-size: 13.5px; }
+.form-linha { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.form-linha label { display: flex; flex-direction: column; gap: 6px; flex: 1 1 220px; }
+.form-linha .campo-rotulo { padding: 0 2px; }
+.aviso-ok { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--primary-soft); border: 1px solid rgba(10, 87, 252, 0.4); border-radius: 12px; padding: 10px 14px; font-size: 13.5px; }

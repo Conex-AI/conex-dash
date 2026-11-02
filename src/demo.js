@@ -116,3 +116,66 @@ export function demoEventos(telefone) {
     { evento: 'conversao', created_at: minutosAtras(60) },
   ]
 }
+
+export function demoMetricasTela() {
+  const mapa = []
+  const base = [[3, 24, 29, 27], [2, 22, 27, 25], [2, 21, 26, 26], [3, 19, 24, 24], [2, 15, 19, 17], [1, 6, 8, 9], [1, 5, 12, 13]]
+  base.forEach((l, d) => l.forEach((n, f) => mapa.push({ dia: d + 1, faixa: f, n })))
+  return {
+    primeira_resposta_seg: 8, msgs_por_conversa: 11.4, msgs_por_conversa_mediana: 9, minutos_ate_repasse: 14,
+    semanas: [['2026-10-05', 88, 74], ['2026-10-12', 96, 83], ['2026-10-19', 101, 89], ['2026-10-26', 110, 98]]
+      .map(([semana, conversas, sucessos]) => ({ semana, conversas, sucessos })),
+    procedimentos: [
+      { procedimento: 'Extensão de cílios', conversas: 148, agendadas: 39 },
+      { procedimento: 'Lash Lift', conversas: 91, agendadas: 22 },
+      { procedimento: 'Design de sobrancelhas', conversas: 74, agendadas: 15 },
+      { procedimento: 'Brow Lamination', conversas: 52, agendadas: 10 },
+    ],
+    sem_procedimento: 11,
+    mapa,
+  }
+}
+
+export function demoPix() {
+  const h = (m) => new Date(Date.now() - m * 60e3).toISOString()
+  return {
+    solicitados: 148, comprovantes: 112, confirmados: 95, valor_confirmado: 2850,
+    minutos_ate_comprovante: 18, minutos_ate_confirmar: 42, parados_2h: 6,
+    recentes: [
+      { telefone: '5561999990001', nome_wpp: 'Amanda', procedimento: 'Lash Lift', valor: '30,00', recebido_em: h(20), confirmado_em: null },
+      { telefone: '5561999990004', nome_wpp: 'Beatriz', procedimento: 'Volume Brasileiro', valor: '30,00', recebido_em: h(140), confirmado_em: h(125) },
+      { telefone: '5561999990005', nome_wpp: 'Larissa', procedimento: 'Design com tintura', valor: '30,00', recebido_em: h(1500), confirmado_em: h(1470) },
+    ],
+  }
+}
+
+export function demoFollowup(clienteId) {
+  if (clienteId === 'demo-1') return { pessoas: 0, estagios: [], onde_parou: [] }
+  return {
+    pessoas: 119,
+    estagios: [
+      { estagio: 1, enviados: 119, respostas: 41, conversoes: 12 },
+      { estagio: 2, enviados: 78, respostas: 19, conversoes: 7 },
+      { estagio: 3, enviados: 51, respostas: 8, conversoes: 3 },
+    ],
+    onde_parou: [
+      { onde: 'Antes de definir o procedimento', total: 52 },
+      { onde: 'Antes de definir o horário', total: 41 },
+      { onde: 'Antes de enviar o comprovante', total: 26 },
+    ],
+  }
+}
+
+export function demoClientesResumo() {
+  return [
+    { cliente_id: 'demo-1', conversas: 412, sucessos: 359, conversoes: 95, ultima_msg_em: new Date().toISOString() },
+    { cliente_id: 'demo-2', conversas: 268, sucessos: 226, conversoes: 52, ultima_msg_em: new Date(Date.now() - 3600e3).toISOString() },
+  ]
+}
+
+export function demoAcessos() {
+  return [
+    { user_id: 'u1', email: 'juliana@exemplo.com.br', papel: 'cliente', ultimo_acesso: new Date(Date.now() - 7 * 3600e3).toISOString() },
+    { user_id: 'u2', email: 'voce@conex.com', papel: 'admin', ultimo_acesso: new Date().toISOString() },
+  ]
+}

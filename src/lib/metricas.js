@@ -92,3 +92,24 @@ export function csvDiario(rows) {
     r.repasses_esperados, r.repasses_falhos, r.resolvidas_sem_humano, r.comprovantes, r.conversoes])
   return '﻿' + [cab, ...linhas].map((l) => l.join(';')).join('\n')
 }
+
+// "8 s", "14 min", "2 h 10 min"
+export function duracao(segundos) {
+  if (segundos === null || segundos === undefined) return '—'
+  const s = Number(segundos)
+  if (s < 60) return `${Math.round(s)} s`
+  const m = Math.round(s / 60)
+  if (m < 60) return `${m} min`
+  const h = Math.floor(m / 60)
+  return `${h} h${m % 60 ? ` ${m % 60} min` : ''}`
+}
+
+export function reais(v) {
+  if (v === null || v === undefined) return '—'
+  return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+export function decimal(v, casas = 1) {
+  if (v === null || v === undefined) return '—'
+  return Number(v).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas })
+}

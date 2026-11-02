@@ -32,7 +32,12 @@ Views/funções: `v_conversas_resumo`, `v_conversoes` (conversão só conta se h
 Tema dark grafite + azul Conex. Tokens em `src/theme.css`: fundo `#16181D`, cards `#1E2128`, azul `#0A57FC`. Não usar preto puro. Logo em `public/logo-conex.png` (fundo transparente).
 
 ## Estado das abas
-Prontas: Dashboard (layout do protótipo, dados via função `dashboard_periodo` em `sql/dashboard_periodo.sql`), Conversas (3 painéis: lista, chat e detalhes com linha do tempo; lê `mensagens` e `eventos_conversa` pelo RLS). Faltam (hoje `EmBreve`): Métricas, Pix, Follow-up, Clientes (só admin). Protótipo de todas as 6 telas: https://claude.ai/artifact/71fpWMs7942KSqvUNdiSHB (tema claro; o app usa os mesmos layouts com os tokens dark).
+Todas prontas, no layout do protótipo (https://claude.ai/artifact/71fpWMs7942KSqvUNdiSHB, tema claro; o app usa os mesmos layouts com os tokens dark):
+- Dashboard → `dashboard_periodo` (`sql/dashboard_periodo.sql`).
+- Conversas → lista, chat (busca as 2000 mensagens mais recentes) e detalhes com linha do tempo; lê `mensagens` e `eventos_conversa`.
+- Métricas → `metricas_periodo` + `dashboard_periodo`; Pix → `pix_periodo`; Follow-up → `followup_periodo`; Clientes (só admin) → `clientes_resumo`, `admin_acessos`, `admin_vincular_acesso` (security definer, só admin), insert em `clientes` (policy `clientes_admin_insert`). Tudo em `sql/telas.sql`.
+- "Sinal solicitado" no Pix = mensagem da Jú que menciona Pix (não há evento próprio). Divergência de comprovante e sinais de incômodo do follow-up ainda não são registrados pelo fluxo.
+- Redefinir senha usa `resetPasswordForEmail`; o link volta ao app e abre `NovaSenha.jsx` (evento PASSWORD_RECOVERY). A URL do app precisa estar em Supabase › Authentication › URL Configuration.
 
 ## Convenções
 - Leitura de dados só em `src/api.js`; cálculo de métricas em `src/lib/metricas.js`.
