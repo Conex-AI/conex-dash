@@ -7,7 +7,7 @@ const QUADRO = 280
 const SAIDA = 512
 const ZOOM_MAX = 5
 
-export default function RecorteFoto({ fonte, aoConfirmar, aoCancelar, redondo = false }) {
+export default function RecorteFoto({ fonte, fonteReserva, aoConfirmar, aoCancelar, redondo = false }) {
   const [img, setImg] = useState(null)       // { el, w, h }
   const [zoom, setZoom] = useState(1)
   const [pos, setPos] = useState({ x: 0, y: 0 }) // deslocamento do centro, em px do quadro
@@ -19,25 +19,35 @@ export default function RecorteFoto({ fonte, aoConfirmar, aoCancelar, redondo = 
     const el = new Image()
     el.crossOrigin = 'anonymous'
     el.onload = () => setImg({ el, w: el.naturalWidth, h: el.naturalHeight })
-    el.onerror = () => setErro('Não foi possível abrir essa imagem. Tente outro arquivo.')
-    if (typeof fonte === 'string') el.src = fonte + (fonte.includes('?') ? '&' : '?') + 'v=' + Date.now()
+    let tentouReserva = false
+    const comCache = (u) => (/^https?:/.test(u) ? u + (u.includes('?') ? '&' : '?') + 'v=' + Date.now() : u)
+    el.onerror = () => {
+      // fotos antigas não têm a imagem original guardada: usa a foto atual
+      if (fonteReserva && !tentouReserva) { tentouReserva = true; el.src = comCache(fonteReserva); return }
+      setErro('Não foi possível abrir essa imagem. Tente outro arquivo.')
+    }
+    if (typeof fonte === 'string') el.src = comCache(fonte)
     else { url = URL.createObjectURL(fonte); el.src = url }
     return () => { if (url) URL.revokeObjectURL(url) }
   }, [fonte])
 
-  const base = img ? Math.max(QUADRO / img.w, QUADRO / img.h) : 1 // cobre o quadro em zoom 1
+  const base = img ? Math.max(QUADRO / img.w, QUADRO / img.h) : 1 // zoom 1 = imagem cobre o quadro
+  // zoom mínimo = imagem inteira dentro do quadro (bom para logos); o espaço que sobra fica transparente
+  // (no mínimo 0,5, para dar folga também em fotos quadradas)
+  const zoomMin = img ? Math.min(0.5, Math.min(QUADRO / img.w, QUADRO / img.h) / base) : 0.5
   const escala = base * zoom
   const largura = img ? img.w * escala : 0
   const altura = img ? img.h * escala : 0
 
-  // não deixa aparecer espaço vazio dentro do quadro
+  // imagem maior que o quadro: não deixa aparecer espaço vazio;
+  // imagem menor (zoom abaixo de 1): pode andar livremente, sem sair do quadro
   function limitar(p, l = largura, a = altura) {
-    const mx = Math.max(0, (l - QUADRO) / 2)
-    const my = Math.max(0, (a - QUADRO) / 2)
+    const mx = Math.abs(l - QUADRO) / 2
+    const my = Math.abs(a - QUADRO) / 2
     return { x: Math.min(mx, Math.max(-mx, p.x)), y: Math.min(my, Math.max(-my, p.y)) }
   }
   function mudarZoom(z) {
-    const nz = Math.min(ZOOM_MAX, Math.max(1, z))
+    const nz = Math.min(ZOOM_MAX, Math.max(zoomMin, z))
     const f = nz / zoom
     setZoom(nz)
     setPos((p) => limitar({ x: p.x * f, y: p.y * f }, img.w * base * nz, img.h * base * nz))
@@ -89,9 +99,15 @@ export default function RecorteFoto({ fonte, aoConfirmar, aoCancelar, redondo = 
     const x = (QUADRO - largura) / 2 + pos.x
     const y = (QUADRO - altura) / 2 + pos.y
     ctx.drawImage(img.el, x * k, y * k, largura * k, altura * k)
+    // guarda também a imagem original (até 1600px) para poder reenquadrar depois
+    const lado = Math.min(1, 1600 / Math.max(img.w, img.h))
+    const o = document.createElement('canvas')
+    o.width = Math.round(img.w * lado); o.height = Math.round(img.h * lado)
+    o.getContext('2d').drawImage(img.el, 0, 0, o.width, o.height)
+    const paraBlob = (cv, q) => new Promise((ok, falha) => cv.toBlob((b) => (b ? ok(b) : falha(new Error('vazio'))), 'image/webp', q))
     try {
-      const blob = await new Promise((ok, falha) => c.toBlob((b) => (b ? ok(b) : falha(new Error('vazio'))), 'image/webp', 0.9))
-      aoConfirmar(blob)
+      const [blob, original] = await Promise.all([paraBlob(c, 0.9), paraBlob(o, 0.88)])
+      aoConfirmar(blob, original)
     } catch {
       setErro('Não foi possível preparar a imagem. Tente outro arquivo.')
     }
@@ -114,7 +130,7 @@ export default function RecorteFoto({ fonte, aoConfirmar, aoCancelar, redondo = 
       </div>
       <label className="recorte-zoom">
         <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M10.5 10.5 14 14M5 7h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
-        <input type="range" min="1" max={ZOOM_MAX} step="0.01" value={zoom} onChange={(e) => mudarZoom(Number(e.target.value))} aria-label="Zoom" disabled={!img} />
+        <input type="range" min={zoomMin} max={ZOOM_MAX} step="0.01" value={zoom} onChange={(e) => mudarZoom(Number(e.target.value))} aria-label="Zoom" disabled={!img} />
         <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M10.5 10.5 14 14M5 7h4M7 5v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
       </label>
       <div className="recorte-botoes">

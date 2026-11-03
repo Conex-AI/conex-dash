@@ -601,3 +601,4 @@ a { color: inherit; text-decoration: none; }
 .recorte-zoom input { flex: 1; accent-color: var(--primary); }
 .recorte-botoes { display: flex; gap: 8px; width: 100%; }
 .recorte-botoes button { white-space: nowrap; }
+.foto:has(img) { background: var(--surface-2); }

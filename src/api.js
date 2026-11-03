@@ -132,15 +132,27 @@ async function prepararFoto(arquivo) {
   return new Promise((ok) => c.toBlob(ok, 'image/webp', 0.9))
 }
 
-// `arquivo` pode ser o arquivo escolhido (recorta no centro) ou o Blob já enquadrado no editor
-export async function enviarFoto(clienteId, arquivo) {
-  const blob = arquivo instanceof File ? await prepararFoto(arquivo) : arquivo
+// Envia a foto já enquadrada e, junto, a imagem original (mesmo nome + "-original"),
+// que o editor usa depois em "Ajustar enquadramento".
+async function subirFoto(pasta, recorte, original) {
+  const blob = recorte instanceof File ? await prepararFoto(recorte) : recorte
   if (DEMO) return URL.createObjectURL(blob)
-  const caminho = `${clienteId}/foto-${Date.now()}.webp`
-  const { error } = await supabase.storage.from('fotos').upload(caminho, blob, { contentType: 'image/webp' })
+  const base = `${pasta}/foto-${Date.now()}`
+  const { error } = await supabase.storage.from('fotos').upload(`${base}.webp`, blob, { contentType: 'image/webp' })
   if (error) throw error
-  const url = supabase.storage.from('fotos').getPublicUrl(caminho).data.publicUrl
-  await rpc('definir_foto_cliente', { p_cliente: clienteId, p_url: url })
+  if (original) {
+    // se falhar, a foto continua valendo; só o reenquadramento fica limitado
+    await supabase.storage.from('fotos').upload(`${base}-original.webp`, original, { contentType: 'image/webp' }).catch(() => {})
+  }
+  return supabase.storage.from('fotos').getPublicUrl(`${base}.webp`).data.publicUrl
+}
+export function urlOriginal(url) {
+  return url ? url.replace(/\.webp(\?.*)?$/, '-original.webp') : url
+}
+
+export async function enviarFoto(clienteId, recorte, original) {
+  const url = await subirFoto(clienteId, recorte, original)
+  if (!DEMO) await rpc('definir_foto_cliente', { p_cliente: clienteId, p_url: url })
   return url
 }
 
@@ -150,14 +162,9 @@ export async function removerFoto(clienteId) {
 }
 
 // Perfil do próprio login (admin): nome e foto pessoais
-export async function enviarMinhaFoto(userId, arquivo) {
-  const blob = arquivo instanceof File ? await prepararFoto(arquivo) : arquivo
-  if (DEMO) return URL.createObjectURL(blob)
-  const caminho = `usuarios/${userId}/foto-${Date.now()}.webp`
-  const { error } = await supabase.storage.from('fotos').upload(caminho, blob, { contentType: 'image/webp' })
-  if (error) throw error
-  const url = supabase.storage.from('fotos').getPublicUrl(caminho).data.publicUrl
-  await rpc('atualizar_meu_perfil', { p_foto_url: url })
+export async function enviarMinhaFoto(userId, recorte, original) {
+  const url = await subirFoto(`usuarios/${userId}`, recorte, original)
+  if (!DEMO) await rpc('atualizar_meu_perfil', { p_foto_url: url })
   return url
 }
 export async function removerMinhaFoto() {

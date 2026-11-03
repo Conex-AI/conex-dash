@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { enviarFoto, removerFoto, trocarSenha, enviarMinhaFoto, removerMinhaFoto, salvarMeuNome } from '../api'
+import { enviarFoto, removerFoto, trocarSenha, enviarMinhaFoto, removerMinhaFoto, salvarMeuNome, urlOriginal } from '../api'
 import { Cabecalho, Card } from '../components/Ui'
 
 import { Foto, nomeExibicao } from '../components/Foto'
@@ -46,12 +46,12 @@ export default function Perfil({ cliente, perfil, email, admin, tema, setTema, o
     setMsgFoto(''); setEditando(f)
   }
 
-  async function salvarRecorte(blob) {
+  async function salvarRecorte(blob, original) {
     setEditando(null)
     setEnviando(true); setMsgFoto('')
     try {
-      if (admin) { const url = await enviarMinhaFoto(perfil.user_id, blob); onPerfil({ foto_url: url }) }
-      else { const url = await enviarFoto(cliente.id, blob); onFoto(url) }
+      if (admin) { const url = await enviarMinhaFoto(perfil.user_id, blob, original); onPerfil({ foto_url: url }) }
+      else { const url = await enviarFoto(cliente.id, blob, original); onFoto(url) }
       setMsgFoto('Foto atualizada.')
     } catch (err) {
       console.error('Enviar foto:', err)
@@ -111,7 +111,7 @@ export default function Perfil({ cliente, perfil, email, admin, tema, setTema, o
               <button className="btn" onClick={() => arquivo.current?.click()} disabled={enviando}>
                 {enviando ? 'Enviando…' : dono.foto_url ? 'Trocar foto' : 'Enviar foto'}
               </button>
-              {dono.foto_url && <button className="btn-claro" onClick={() => setEditando(dono.foto_url)} disabled={enviando}>Ajustar enquadramento</button>}
+              {dono.foto_url && <button className="btn-claro" onClick={() => setEditando({ url: urlOriginal(dono.foto_url), reserva: dono.foto_url })} disabled={enviando}>Ajustar enquadramento</button>}
               {dono.foto_url && <button className="btn-claro" onClick={tirarFoto} disabled={enviando}>Remover</button>}
               <input ref={arquivo} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={escolherFoto} />
             </div>
@@ -174,7 +174,7 @@ export default function Perfil({ cliente, perfil, email, admin, tema, setTema, o
           <div><button className="btn-claro" onClick={sair}>Sair do painel</button></div>
         </Card>
       </section>
-      {editando && <RecorteFoto fonte={editando} aoConfirmar={salvarRecorte} aoCancelar={() => setEditando(null)} />}
+      {editando && <RecorteFoto fonte={editando.url || editando} fonteReserva={editando.reserva} aoConfirmar={salvarRecorte} aoCancelar={() => setEditando(null)} />}
     </>
   )
 }
