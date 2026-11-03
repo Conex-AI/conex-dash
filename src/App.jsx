@@ -198,7 +198,7 @@ export default function App() {
               <>
                 <span className="campo-rotulo">Cliente em visualização</span>
                 <div className="cliente-sel">
-                  <Foto cliente={cliente} className="mini" />
+                  <Foto cliente={cliente} className="mini" ampliavel />
                   {clientes.length > 1 ? (
                     <select value={clienteId || ''} onChange={(e) => escolherCliente(e.target.value)} aria-label="Trocar de cliente">
                       {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}

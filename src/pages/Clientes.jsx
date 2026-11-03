@@ -113,7 +113,7 @@ export default function Clientes({ clientes, clienteAtual, onNovoCliente, abrir 
                   <tr key={c.id} className={c.id === sel ? 'sel' : ''}>
                     <td className="esq">
                       <button className="cliente-linha" onClick={() => setSel(c.id)} title="Ver acessos">
-                        <Foto cliente={c} className="cinza" />
+                        <Foto cliente={c} className="cinza" ampliavel />
                         <span><b>{c.nome}</b><em>{c.slug}</em></span>
                       </button>
                     </td>

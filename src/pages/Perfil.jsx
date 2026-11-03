@@ -3,6 +3,7 @@ import { enviarFoto, removerFoto, trocarSenha, enviarMinhaFoto, removerMinhaFoto
 import { Cabecalho, Card } from '../components/Ui'
 
 import { Foto, nomeExibicao } from '../components/Foto'
+import RecorteFoto from '../components/RecorteFoto'
 
 // Erro de "função não encontrada": o SQL correspondente ainda não foi rodado no Supabase
 const faltaSql = (err) => /could not find the function|function .* does not exist|schema cache/i.test(err?.message || '')
@@ -28,6 +29,7 @@ export default function Perfil({ cliente, perfil, email, admin, tema, setTema, o
   const dono = admin ? { nome: meuNome, foto_url: perfil?.foto_url } : cliente
   const [nome, setNome] = useState(meuNome)
   const [msgNome, setMsgNome] = useState('')
+  const [editando, setEditando] = useState(null) // arquivo escolhido ou endereço da foto atual, no editor
   const arquivo = useRef(null)
   const [enviando, setEnviando] = useState(false)
   const [msgFoto, setMsgFoto] = useState('')
@@ -35,23 +37,27 @@ export default function Perfil({ cliente, perfil, email, admin, tema, setTema, o
   const [msgSenha, setMsgSenha] = useState(null) // { ok, texto }
   const [salvando, setSalvando] = useState(false)
 
-  async function escolherFoto(e) {
+  function escolherFoto(e) {
     const f = e.target.files?.[0]
     e.target.value = ''
     if (!f) return
     if (!f.type.startsWith('image/')) { setMsgFoto('Escolha um arquivo de imagem (PNG, JPG ou WEBP).'); return }
-    if (f.size > 8 * 1024 * 1024) { setMsgFoto('A imagem é muito grande. Use uma de até 8 MB.'); return }
+    if (f.size > 15 * 1024 * 1024) { setMsgFoto('A imagem é muito grande. Use uma de até 15 MB.'); return }
+    setMsgFoto(''); setEditando(f)
+  }
+
+  async function salvarRecorte(blob) {
+    setEditando(null)
     setEnviando(true); setMsgFoto('')
     try {
-      if (admin) { const url = await enviarMinhaFoto(perfil.user_id, f); onPerfil({ foto_url: url }) }
-      else { const url = await enviarFoto(cliente.id, f); onFoto(url) }
+      if (admin) { const url = await enviarMinhaFoto(perfil.user_id, blob); onPerfil({ foto_url: url }) }
+      else { const url = await enviarFoto(cliente.id, blob); onFoto(url) }
       setMsgFoto('Foto atualizada.')
     } catch (err) {
       console.error('Enviar foto:', err)
       const m = err?.message || ''
       setMsgFoto(/bucket not found/i.test(m) ? 'O espaço das fotos ainda não existe. Rode o sql/perfil.sql no Supabase e tente de novo.'
         : /row-level security|violates|unauthorized|403/i.test(m) ? 'Sem permissão para enviar a foto. Rode de novo o sql/perfil.sql no Supabase.'
-        : /mime|type/i.test(m) ? 'Formato de imagem não aceito. Use PNG, JPG ou WEBP.'
         : faltaSql(err) ? 'O banco ainda não tem a função do perfil. Rode o sql/perfil_usuario.sql no Supabase.'
         : `Não foi possível enviar a foto (${m || 'erro desconhecido'}).`)
     } finally { setEnviando(false) }
@@ -105,6 +111,7 @@ export default function Perfil({ cliente, perfil, email, admin, tema, setTema, o
               <button className="btn" onClick={() => arquivo.current?.click()} disabled={enviando}>
                 {enviando ? 'Enviando…' : dono.foto_url ? 'Trocar foto' : 'Enviar foto'}
               </button>
+              {dono.foto_url && <button className="btn-claro" onClick={() => setEditando(dono.foto_url)} disabled={enviando}>Ajustar enquadramento</button>}
               {dono.foto_url && <button className="btn-claro" onClick={tirarFoto} disabled={enviando}>Remover</button>}
               <input ref={arquivo} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={escolherFoto} />
             </div>
@@ -167,6 +174,7 @@ export default function Perfil({ cliente, perfil, email, admin, tema, setTema, o
           <div><button className="btn-claro" onClick={sair}>Sair do painel</button></div>
         </Card>
       </section>
+      {editando && <RecorteFoto fonte={editando} aoConfirmar={salvarRecorte} aoCancelar={() => setEditando(null)} />}
     </>
   )
 }

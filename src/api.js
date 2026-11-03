@@ -132,8 +132,9 @@ async function prepararFoto(arquivo) {
   return new Promise((ok) => c.toBlob(ok, 'image/webp', 0.9))
 }
 
+// `arquivo` pode ser o arquivo escolhido (recorta no centro) ou o Blob já enquadrado no editor
 export async function enviarFoto(clienteId, arquivo) {
-  const blob = await prepararFoto(arquivo)
+  const blob = arquivo instanceof File ? await prepararFoto(arquivo) : arquivo
   if (DEMO) return URL.createObjectURL(blob)
   const caminho = `${clienteId}/foto-${Date.now()}.webp`
   const { error } = await supabase.storage.from('fotos').upload(caminho, blob, { contentType: 'image/webp' })
@@ -150,7 +151,7 @@ export async function removerFoto(clienteId) {
 
 // Perfil do próprio login (admin): nome e foto pessoais
 export async function enviarMinhaFoto(userId, arquivo) {
-  const blob = await prepararFoto(arquivo)
+  const blob = arquivo instanceof File ? await prepararFoto(arquivo) : arquivo
   if (DEMO) return URL.createObjectURL(blob)
   const caminho = `usuarios/${userId}/foto-${Date.now()}.webp`
   const { error } = await supabase.storage.from('fotos').upload(caminho, blob, { contentType: 'image/webp' })
