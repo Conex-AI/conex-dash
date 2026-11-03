@@ -12,3 +12,10 @@ export function Foto({ cliente, grande = false, className = '' }) {
   )
 }
 
+
+// Nome de quem está logado: o nome salvo no perfil ou a parte do e-mail antes do @
+export function nomeExibicao(perfil, email = '') {
+  if (perfil?.nome) return perfil.nome
+  const base = email.split('@')[0].replace(/[._-]+/g, ' ').replace(/\d+/g, '').trim()
+  return base ? base.replace(/\b\w/g, (l) => l.toUpperCase()) : 'Meu perfil'
+}

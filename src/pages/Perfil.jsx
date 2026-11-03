@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react'
-import { enviarFoto, removerFoto, trocarSenha } from '../api'
+import { enviarFoto, removerFoto, trocarSenha, enviarMinhaFoto, removerMinhaFoto, salvarMeuNome } from '../api'
 import { Cabecalho, Card } from '../components/Ui'
 
-import { Foto } from '../components/Foto'
+import { Foto, nomeExibicao } from '../components/Foto'
 
 function Previa({ claro }) {
   const c = claro
@@ -19,7 +19,12 @@ function Previa({ claro }) {
   )
 }
 
-export default function Perfil({ cliente, email, admin, tema, setTema, onFoto, sair }) {
+export default function Perfil({ cliente, perfil, email, admin, tema, setTema, onFoto, onPerfil, sair }) {
+  // Admin: perfil é dele mesmo (nome e foto pessoais). Cliente: perfil é o do painel do cliente.
+  const meuNome = nomeExibicao(perfil, email)
+  const dono = admin ? { nome: meuNome, foto_url: perfil?.foto_url } : cliente
+  const [nome, setNome] = useState(meuNome)
+  const [msgNome, setMsgNome] = useState('')
   const arquivo = useRef(null)
   const [enviando, setEnviando] = useState(false)
   const [msgFoto, setMsgFoto] = useState('')
@@ -35,8 +40,9 @@ export default function Perfil({ cliente, email, admin, tema, setTema, onFoto, s
     if (f.size > 8 * 1024 * 1024) { setMsgFoto('A imagem é muito grande. Use uma de até 8 MB.'); return }
     setEnviando(true); setMsgFoto('')
     try {
-      const url = await enviarFoto(cliente.id, f)
-      onFoto(url); setMsgFoto('Foto atualizada.')
+      if (admin) { const url = await enviarMinhaFoto(perfil.user_id, f); onPerfil({ foto_url: url }) }
+      else { const url = await enviarFoto(cliente.id, f); onFoto(url) }
+      setMsgFoto('Foto atualizada.')
     } catch {
       setMsgFoto('Não foi possível enviar a foto. Tente de novo.')
     } finally { setEnviando(false) }
@@ -44,9 +50,20 @@ export default function Perfil({ cliente, email, admin, tema, setTema, onFoto, s
 
   async function tirarFoto() {
     setEnviando(true); setMsgFoto('')
-    try { await removerFoto(cliente.id); onFoto(null); setMsgFoto('Foto removida.') }
+    try {
+      if (admin) { await removerMinhaFoto(); onPerfil({ foto_url: null }) }
+      else { await removerFoto(cliente.id); onFoto(null) }
+      setMsgFoto('Foto removida.')
+    }
     catch { setMsgFoto('Não foi possível remover a foto.') }
     finally { setEnviando(false) }
+  }
+
+  async function salvarNome(e) {
+    e.preventDefault()
+    if (!nome.trim()) return
+    try { await salvarMeuNome(nome.trim()); onPerfil({ nome: nome.trim() }); setMsgNome('Nome salvo.') }
+    catch { setMsgNome('Não foi possível salvar o nome. Tente de novo.') }
   }
 
   async function salvarSenha(e) {
@@ -65,22 +82,34 @@ export default function Perfil({ cliente, email, admin, tema, setTema, onFoto, s
 
   return (
     <>
-      <Cabecalho titulo="Meu perfil" sub={`${cliente.nome} · foto, aparência e senha do seu painel`} />
+      <Cabecalho titulo="Meu perfil" sub={admin ? `${meuNome} · administrador da Conex` : `${cliente.nome} · foto, aparência e senha do seu painel`} />
 
       <section className="linha">
-        <Card className="f1" titulo="Foto do painel">
+        <Card className="f1" titulo={admin ? 'Sua foto e nome' : 'Foto do painel'}>
           <div className="foto-linha">
-            <Foto cliente={cliente} grande />
+            <Foto cliente={dono} grande />
             <div className="foto-acoes">
               <button className="btn" onClick={() => arquivo.current?.click()} disabled={enviando}>
-                {enviando ? 'Enviando…' : cliente.foto_url ? 'Trocar foto' : 'Enviar foto'}
+                {enviando ? 'Enviando…' : dono.foto_url ? 'Trocar foto' : 'Enviar foto'}
               </button>
-              {cliente.foto_url && <button className="btn-claro" onClick={tirarFoto} disabled={enviando}>Remover</button>}
+              {dono.foto_url && <button className="btn-claro" onClick={tirarFoto} disabled={enviando}>Remover</button>}
               <input ref={arquivo} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={escolherFoto} />
             </div>
           </div>
           {msgFoto && <p className="nota" role="status">{msgFoto}</p>}
-          <p className="nota">A foto aparece no menu do painel{admin ? ' deste cliente' : ''}. Use o logo ou uma foto quadrada; ela é recortada no centro.</p>
+          {admin && (
+            <form className="form-linha" onSubmit={salvarNome}>
+              <label>
+                <span className="campo-rotulo">Nome de exibição</span>
+                <input className="input" value={nome} onChange={(e) => { setNome(e.target.value); setMsgNome('') }} maxLength={60} />
+              </label>
+              <button className="btn" type="submit" disabled={!nome.trim() || nome.trim() === meuNome}>Salvar</button>
+            </form>
+          )}
+          {msgNome && <p className="nota" role="status">{msgNome}</p>}
+          <p className="nota">{admin
+            ? 'Esse é o seu perfil de administrador. A foto do painel de cada cliente é alterada pelo próprio cliente, no perfil dele.'
+            : 'A foto aparece no menu do painel. Use o logo ou uma foto quadrada; ela é recortada no centro.'}</p>
         </Card>
 
         <Card className="f1" titulo="Aparência">
@@ -119,7 +148,7 @@ export default function Perfil({ cliente, email, admin, tema, setTema, onFoto, s
         <Card className="f1" titulo="Conta">
           <div className="stats">
             <div><span>E-mail de acesso</span><b style={{ overflowWrap: 'anywhere', textAlign: 'right' }}>{email}</b></div>
-            <div><span>Cliente</span><b>{cliente.nome}</b></div>
+            {admin ? <div><span>Nome</span><b>{meuNome}</b></div> : <div><span>Cliente</span><b>{cliente.nome}</b></div>}
             <div><span>Tipo de acesso</span><b>{admin ? 'Admin' : 'Cliente'}</b></div>
           </div>
           <div><button className="btn-claro" onClick={sair}>Sair do painel</button></div>

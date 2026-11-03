@@ -37,7 +37,7 @@ Todas prontas, no layout do protótipo (https://claude.ai/artifact/71fpWMs7942KS
 - Conversas → lista, chat (busca as 2000 mensagens mais recentes) e detalhes com linha do tempo; lê `mensagens` e `eventos_conversa`.
 - Métricas → `metricas_periodo` + `dashboard_periodo`; Pix → `pix_periodo`; Follow-up → `followup_periodo`; Clientes (só admin) → `clientes_resumo`, `admin_acessos`, `admin_vincular_acesso` (security definer, só admin), insert em `clientes` (policy `clientes_admin_insert`). Tudo em `sql/telas.sql`.
 - "Sinal solicitado" no Pix = mensagem da Jú que menciona Pix (não há evento próprio). Divergência de comprovante e sinais de incômodo do follow-up ainda não são registrados pelo fluxo.
-- Perfil (`/perfil`, botão com o nome do cliente no menu): foto do painel (Storage `fotos/<cliente_id>/`, `clientes.foto_url`, função `definir_foto_cliente`; SQL em `sql/perfil.sql`), tema claro/escuro e troca de senha (confere a atual antes).
+- Perfil é de quem está logado. Admin: perfil próprio (`perfis.nome`, `perfis.foto_url`, função `atualizar_meu_perfil`, fotos em `fotos/usuarios/<user_id>/`; SQL em `sql/perfil_usuario.sql`) e, abaixo, o seletor "Cliente em visualização". Cliente: Perfil (`/perfil`, botão com o nome do cliente no menu): foto do painel (Storage `fotos/<cliente_id>/`, `clientes.foto_url`, função `definir_foto_cliente`; SQL em `sql/perfil.sql`), tema claro/escuro e troca de senha (confere a atual antes).
 - Redefinir senha usa `resetPasswordForEmail`; o link volta ao app e abre `NovaSenha.jsx` (evento PASSWORD_RECOVERY). A URL do app precisa estar em Supabase › Authentication › URL Configuration.
 
 ## Convenções

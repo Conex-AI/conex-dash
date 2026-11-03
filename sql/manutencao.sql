@@ -6,6 +6,7 @@
 --   2. sql/telas.sql               → Métricas, Pix, Follow-up e Clientes
 --   3. sql/perfil.sql              → foto do painel
 --   4. sql/backup_automatico.sql   → backup de tudo, de hora em hora (pg_cron)
+--   5. sql/perfil_usuario.sql      → nome e foto do perfil de cada login (admin)
 -- Pode rodar de novo sempre que eu atualizar algum deles (são "create or replace").
 --
 -- Troque os valores entre <...> antes de rodar. O slug da Ju Beauty é 'jubeauty'.

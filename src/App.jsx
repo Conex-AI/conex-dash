@@ -5,7 +5,7 @@ import { ICONES } from './components/Icones'
 import Login from './Login'
 import Dashboard from './pages/Dashboard'
 import NovaSenha from './NovaSenha'
-import { Foto } from './components/Foto'
+import { Foto, nomeExibicao } from './components/Foto'
 import { Esqueleto } from './components/Ui'
 import { Marca } from './components/Marca'
 import { useTema } from './lib/tema'
@@ -138,6 +138,8 @@ export default function App() {
   const admin = perfil?.papel === 'admin'
   const cliente = clientes.find((c) => c.id === clienteId)
   const abas = ABAS.filter((a) => !a.soAdmin || admin)
+  // Quem aparece no botão "Meu perfil": o próprio admin, ou o painel do cliente para quem é cliente
+  const dono = admin ? { nome: nomeExibicao(perfil, sessao.user.email), foto_url: perfil?.foto_url } : cliente
   const aba = rota.aba === 'clientes' && !admin ? 'dashboard' : rota.aba
   const irPara = (novaAba) => { gaveta.fechar(); ir(novaAba, cliente?.slug) }
 
@@ -165,7 +167,7 @@ export default function App() {
         {cliente ? (
           <a className="topo-botao" href={endereco('perfil', cliente.slug)} aria-label="Meu perfil"
             onClick={(e) => { if (cliqueInterno(e)) { e.preventDefault(); irPara('perfil') } }}>
-            <Foto cliente={cliente} />
+            <Foto cliente={dono} />
           </a>
         ) : <span className="topo-botao" />}
       </header>
@@ -188,16 +190,24 @@ export default function App() {
             <a href={endereco('perfil', cliente.slug)} className={`perfil-btn ${aba === 'perfil' ? 'ativa' : ''}`}
               aria-current={aba === 'perfil' ? 'page' : undefined}
               onClick={(e) => { if (cliqueInterno(e)) { e.preventDefault(); irPara('perfil') } }}>
-              <Foto cliente={cliente} />
-              <span className="nome"><b>{cliente.nome}</b><em>Meu perfil</em></span>
+              <Foto cliente={dono} />
+              <span className="nome"><b>{dono.nome}</b><em>{admin ? 'Meu perfil · Admin' : 'Meu perfil'}</em></span>
               <svg className="seta" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 L10.5 8 L6 12.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </a>
-            {admin && clientes.length > 1 && (
-              <select className="input troca-cliente" value={clienteId || ''} onChange={(e) => escolherCliente(e.target.value)} aria-label="Trocar de cliente">
-                {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-              </select>
+            {admin && (
+              <>
+                <span className="campo-rotulo">Cliente em visualização</span>
+                <div className="cliente-sel">
+                  <Foto cliente={cliente} className="mini" />
+                  {clientes.length > 1 ? (
+                    <select value={clienteId || ''} onChange={(e) => escolherCliente(e.target.value)} aria-label="Trocar de cliente">
+                      {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                    </select>
+                  ) : <strong style={{ fontSize: 14 }}>{cliente.nome}</strong>}
+                </div>
+                <span className="campo-rotulo">{clientes.filter((c) => c.ativo).length} {clientes.filter((c) => c.ativo).length === 1 ? 'cliente ativo' : 'clientes ativos'}</span>
+              </>
             )}
-            {admin && <span className="campo-rotulo">Visão admin: {clientes.filter((c) => c.ativo).length} clientes ativos</span>}
           </div>
         )}
 
@@ -226,7 +236,8 @@ export default function App() {
             {aba === 'dashboard' && <Dashboard cliente={cliente} irPara={irPara} />}
             {aba === 'conversas' && <Conversas cliente={cliente} />}
             {aba === 'perfil' && (
-              <Perfil cliente={cliente} email={sessao.user.email} admin={admin} tema={tema} setTema={setTema} sair={sair}
+              <Perfil cliente={cliente} perfil={perfil} email={sessao.user.email} admin={admin} tema={tema} setTema={setTema} sair={sair}
+                onPerfil={(mudou) => setPerfil((p) => ({ ...p, ...mudou }))}
                 onFoto={(url) => setClientes((l) => l.map((c) => (c.id === cliente.id ? { ...c, foto_url: url } : c)))} />
             )}
             {aba === 'metricas' && <Metricas cliente={cliente} irPara={irPara} />}

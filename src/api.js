@@ -7,9 +7,9 @@ import {
 // Todas as leituras passam pelo RLS do banco: o cliente só recebe as linhas dele.
 
 export async function carregarPerfil(userId) {
-  if (DEMO) return { user_id: userId, papel: 'admin', cliente_id: null }
+  if (DEMO) return { user_id: userId, papel: 'admin', cliente_id: null, nome: 'Erick Vinícius', foto_url: null }
   const { data, error } = await supabase
-    .from('perfis').select('user_id, papel, cliente_id').eq('user_id', userId).maybeSingle()
+    .from('perfis').select('*').eq('user_id', userId).maybeSingle() // '*' para funcionar antes e depois das colunas nome/foto_url
   if (error) throw error
   return data
 }
@@ -146,6 +146,26 @@ export async function enviarFoto(clienteId, arquivo) {
 export async function removerFoto(clienteId) {
   if (DEMO) return
   await rpc('definir_foto_cliente', { p_cliente: clienteId, p_url: '' })
+}
+
+// Perfil do próprio login (admin): nome e foto pessoais
+export async function enviarMinhaFoto(userId, arquivo) {
+  const blob = await prepararFoto(arquivo)
+  if (DEMO) return URL.createObjectURL(blob)
+  const caminho = `usuarios/${userId}/foto-${Date.now()}.webp`
+  const { error } = await supabase.storage.from('fotos').upload(caminho, blob, { contentType: 'image/webp', upsert: true })
+  if (error) throw error
+  const url = supabase.storage.from('fotos').getPublicUrl(caminho).data.publicUrl
+  await rpc('atualizar_meu_perfil', { p_foto_url: url })
+  return url
+}
+export async function removerMinhaFoto() {
+  if (DEMO) return
+  await rpc('atualizar_meu_perfil', { p_limpar_foto: true })
+}
+export async function salvarMeuNome(nome) {
+  if (DEMO) return
+  await rpc('atualizar_meu_perfil', { p_nome: nome })
 }
 
 // Troca a senha confirmando a senha atual antes.
