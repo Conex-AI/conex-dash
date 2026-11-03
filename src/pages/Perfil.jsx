@@ -48,8 +48,12 @@ export default function Perfil({ cliente, perfil, email, admin, tema, setTema, o
       setMsgFoto('Foto atualizada.')
     } catch (err) {
       console.error('Enviar foto:', err)
-      setMsgFoto(faltaSql(err) ? 'O banco ainda não tem a função do perfil. Rode o sql/perfil_usuario.sql (ou o perfil.sql) no Supabase.'
-        : 'Não foi possível enviar a foto. Tente de novo.')
+      const m = err?.message || ''
+      setMsgFoto(/bucket not found/i.test(m) ? 'O espaço das fotos ainda não existe. Rode o sql/perfil.sql no Supabase e tente de novo.'
+        : /row-level security|violates|unauthorized|403/i.test(m) ? 'Sem permissão para enviar a foto. Rode de novo o sql/perfil.sql no Supabase.'
+        : /mime|type/i.test(m) ? 'Formato de imagem não aceito. Use PNG, JPG ou WEBP.'
+        : faltaSql(err) ? 'O banco ainda não tem a função do perfil. Rode o sql/perfil_usuario.sql no Supabase.'
+        : `Não foi possível enviar a foto (${m || 'erro desconhecido'}).`)
     } finally { setEnviando(false) }
   }
 

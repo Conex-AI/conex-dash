@@ -136,7 +136,7 @@ export async function enviarFoto(clienteId, arquivo) {
   const blob = await prepararFoto(arquivo)
   if (DEMO) return URL.createObjectURL(blob)
   const caminho = `${clienteId}/foto-${Date.now()}.webp`
-  const { error } = await supabase.storage.from('fotos').upload(caminho, blob, { contentType: 'image/webp', upsert: true })
+  const { error } = await supabase.storage.from('fotos').upload(caminho, blob, { contentType: 'image/webp' })
   if (error) throw error
   const url = supabase.storage.from('fotos').getPublicUrl(caminho).data.publicUrl
   await rpc('definir_foto_cliente', { p_cliente: clienteId, p_url: url })
@@ -153,7 +153,7 @@ export async function enviarMinhaFoto(userId, arquivo) {
   const blob = await prepararFoto(arquivo)
   if (DEMO) return URL.createObjectURL(blob)
   const caminho = `usuarios/${userId}/foto-${Date.now()}.webp`
-  const { error } = await supabase.storage.from('fotos').upload(caminho, blob, { contentType: 'image/webp', upsert: true })
+  const { error } = await supabase.storage.from('fotos').upload(caminho, blob, { contentType: 'image/webp' })
   if (error) throw error
   const url = supabase.storage.from('fotos').getPublicUrl(caminho).data.publicUrl
   await rpc('atualizar_meu_perfil', { p_foto_url: url })

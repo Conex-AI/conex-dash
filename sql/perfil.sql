@@ -15,10 +15,14 @@ values ('fotos', 'fotos', true, 2097152, array['image/png', 'image/jpeg', 'image
 on conflict (id) do update set public = true, file_size_limit = 2097152,
   allowed_mime_types = array['image/png', 'image/jpeg', 'image/webp'];
 
+drop policy if exists fotos_leitura on storage.objects;
 drop policy if exists fotos_envio   on storage.objects;
 drop policy if exists fotos_troca   on storage.objects;
 drop policy if exists fotos_remocao on storage.objects;
 
+-- leitura dos arquivos pelo login (o envio do Storage confere o arquivo depois de gravar)
+create policy fotos_leitura on storage.objects for select to authenticated
+  using (bucket_id = 'fotos');
 create policy fotos_envio on storage.objects for insert to authenticated
   with check (bucket_id = 'fotos' and (public.is_admin() or (storage.foldername(name))[1] = public.meu_cliente_id()::text));
 create policy fotos_troca on storage.objects for update to authenticated
