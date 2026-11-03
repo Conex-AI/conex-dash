@@ -49,4 +49,5 @@ Todas prontas, no layout do protótipo (https://claude.ai/artifact/71fpWMs7942KS
 - Celular (≤860px): barra no topo (menu, logo, foto → perfil) e menu em gaveta (`src/lib/gaveta.js`): abre pelo botão ou arrastando da borda esquerda ou direita (sai do lado puxado e segue o dedo); fecha arrastando, tocando fora, Esc ou ao escolher uma tela.
 - `VITE_DEMO=1` roda com dados fictícios (`src/demo.js`) para ver o visual sem login.
 - Mensagens de erro para o cliente final: simples, em português, sem jargão.
+- Backup: `sql/backup_automatico.sql` (pg_cron, toda hora, schema `backup` não exposto pela API; retenção 48h completas + meia-noite por 30 dias em `backup.config`; log em `backup.registro`). Manutenção manual (acessos, backup/restauração, limpeza, diagnóstico) em `sql/manutencao.sql`.
 - Mudanças de banco: sempre como SQL para o Vini rodar no SQL Editor; explicar o motivo.
