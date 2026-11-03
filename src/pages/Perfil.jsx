@@ -4,6 +4,9 @@ import { Cabecalho, Card } from '../components/Ui'
 
 import { Foto, nomeExibicao } from '../components/Foto'
 
+// Erro de "função não encontrada": o SQL correspondente ainda não foi rodado no Supabase
+const faltaSql = (err) => /could not find the function|function .* does not exist|schema cache/i.test(err?.message || '')
+
 function Previa({ claro }) {
   const c = claro
     ? { bg: '#eef1f6', side: '#ffffff', card: '#ffffff', linha: '#e1e6ee' }
@@ -43,8 +46,10 @@ export default function Perfil({ cliente, perfil, email, admin, tema, setTema, o
       if (admin) { const url = await enviarMinhaFoto(perfil.user_id, f); onPerfil({ foto_url: url }) }
       else { const url = await enviarFoto(cliente.id, f); onFoto(url) }
       setMsgFoto('Foto atualizada.')
-    } catch {
-      setMsgFoto('Não foi possível enviar a foto. Tente de novo.')
+    } catch (err) {
+      console.error('Enviar foto:', err)
+      setMsgFoto(faltaSql(err) ? 'O banco ainda não tem a função do perfil. Rode o sql/perfil_usuario.sql (ou o perfil.sql) no Supabase.'
+        : 'Não foi possível enviar a foto. Tente de novo.')
     } finally { setEnviando(false) }
   }
 
@@ -63,7 +68,11 @@ export default function Perfil({ cliente, perfil, email, admin, tema, setTema, o
     e.preventDefault()
     if (!nome.trim()) return
     try { await salvarMeuNome(nome.trim()); onPerfil({ nome: nome.trim() }); setMsgNome('Nome salvo.') }
-    catch { setMsgNome('Não foi possível salvar o nome. Tente de novo.') }
+    catch (err) {
+      console.error('Salvar nome:', err)
+      setMsgNome(faltaSql(err) ? 'O banco ainda não tem a função do perfil. Rode o sql/perfil_usuario.sql no Supabase e tente de novo.'
+        : 'Não foi possível salvar o nome. Tente de novo.')
+    }
   }
 
   async function salvarSenha(e) {
