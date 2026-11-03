@@ -143,31 +143,4 @@ select cron.schedule('conex-backup-horario', '0 * * * *', $$select backup.backup
 select backup.backup_automatico();
 select * from backup.registro order by quando desc limit 5;
 
-
--- =============================================================================
--- CONSULTAS DO DIA A DIA (rode só a que precisar)
--- =============================================================================
-
--- Últimas execuções (ok = true é sucesso; se false, a coluna erro diz o motivo)
-select quando at time zone 'America/Sao_Paulo' as quando, conjunto, mensagens, eventos, clientes, ok, apagados, erro
-from backup.registro order by quando desc limit 24;
-
--- Execuções do agendador vistas pelo próprio pg_cron
-select start_time at time zone 'America/Sao_Paulo' as inicio, status, return_message
-from cron.job_run_details
-where jobid = (select jobid from cron.job where jobname = 'conex-backup-horario')
-order by start_time desc limit 10;
-
--- Quanto espaço os backups estão ocupando
-select count(*) as tabelas, pg_size_pretty(sum(pg_total_relation_size(format('backup.%I', table_name)::regclass))) as tamanho
-from information_schema.tables where table_schema = 'backup';
-
--- Mudar a retenção (ex.: 72 horas completas e 60 dias de diários)
-update backup.config set horas_completas = 72, dias_diarios = 60 where id = 1;
-
--- Pausar / retomar o backup automático
-select cron.unschedule('conex-backup-horario');
-select cron.schedule('conex-backup-horario', '0 * * * *', $$select backup.backup_automatico()$$);
-
--- Para restaurar um backup automático, use as consultas 3.2 e 3.3 do manutencao.sql
--- com o final do conjunto, ex.: auto_20261103_0100
+-- Pronto. Acompanhar, pausar e mudar a retenção: seção 3.5 do sql/manutencao.sql.
