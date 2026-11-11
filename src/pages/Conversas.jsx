@@ -23,17 +23,19 @@ const EVENTO = {
 }
 const QUEM = { cliente: 'Cliente', ia: 'Jú', humano: 'Juliana' }
 
-const hora = (iso) => new Date(iso).toLocaleTimeString('pt-BR', { timeZone: TZ, hour: '2-digit', minute: '2-digit' })
-const dia = (iso) => new Date(iso).toLocaleDateString('sv', { timeZone: TZ })
+const hora = (iso) => !iso ? '' : new Date(iso).toLocaleTimeString('pt-BR', { timeZone: TZ, hour: '2-digit', minute: '2-digit' })
+const dia = (iso) => !iso ? '' : new Date(iso).toLocaleDateString('sv', { timeZone: TZ })
 
 function quando(iso) {
+  if (!iso) return ''
   const hoje = new Date().toLocaleDateString('sv', { timeZone: TZ })
   if (dia(iso) === hoje) return hora(iso)
   return new Date(iso).toLocaleDateString('pt-BR', { timeZone: TZ, day: '2-digit', month: '2-digit' })
 }
 // 5561999990068 -> "55 61 9•••• ••68" (o número inteiro não precisa ficar à mostra na tela)
-function mascara(tel = '') {
-  const n = tel.replace(/\D/g, '')
+function mascara(tel) {
+  const n = String(tel || '').replace(/\D/g, '')
+  if (!n) return 'Sem número'
   if (n.length < 12) return n.replace(/.(?=.{2})/g, '•')
   return `${n.slice(0, 2)} ${n.slice(2, 4)} ${n[4]}•••• ••${n.slice(-2)}`
 }
@@ -41,8 +43,8 @@ const ICONE_MIDIA = {
   audio: 'M7 2.5a2 2 0 0 1 4 0v5a2 2 0 0 1-4 0zM4.5 7.5a4.5 4.5 0 0 0 9 0M9 12v3',
   imagem: 'M3 3.5h12v11H3zM3 12l3.5-3.5 3 3 2-2L15 13M11.5 7a1 1 0 1 0 0-.01',
 }
-function iniciaisNome(n = '') {
-  const p = n.trim().split(/\s+/).filter(Boolean)
+function iniciaisNome(n) {
+  const p = String(n || '').trim().split(/\s+/).filter(Boolean)
   return ((p[0]?.[0] || '') + (p[1]?.[0] || '')).toUpperCase() || '?'
 }
 function dataLonga(d) {
@@ -52,7 +54,7 @@ function dataLonga(d) {
   if (d === ontem) return 'Ontem'
   return new Date(d + 'T12:00:00Z').toLocaleDateString('pt-BR', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long' })
 }
-const rotuloMsg = (m) => m.conteudo || ({ audio: '[áudio]', imagem: '[imagem]', foto_enviada: '[foto enviada]', video_enviado: '[vídeo enviado]' }[m.tipo] || '[mídia]')
+const rotuloMsg = (m) => (typeof m.conteudo === 'string' ? m.conteudo : m.conteudo ? JSON.stringify(m.conteudo) : '') || ({ audio: '[áudio]', imagem: '[imagem]', foto_enviada: '[foto enviada]', video_enviado: '[vídeo enviado]' }[m.tipo] || '[mídia]')
 
 export default function Conversas({ cliente }) {
   const [busca, setBusca] = useState('')
@@ -86,7 +88,7 @@ export default function Conversas({ cliente }) {
     const q = busca.trim().toLowerCase()
     return linhas.filter((c) => {
       if (filtro !== 'todos' && (c.ultimo_desfecho || 'andamento') !== filtro) return false
-      return !q || (c.nome_wpp || '').toLowerCase().includes(q) || c.telefone.includes(q.replace(/\D/g, '') || '§')
+      return !q || (c.nome_wpp || '').toLowerCase().includes(q) || String(c.telefone || '').includes(q.replace(/\D/g, '') || '§')
     })
   }, [linhas, busca, filtro])
 
@@ -154,10 +156,10 @@ export default function Conversas({ cliente }) {
               <input className="input" type="search" placeholder="Buscar por nome ou telefone" value={busca} onChange={(e) => setBusca(e.target.value)} />
             </label>
             {visiveis.length === 0 && <div className="vazio">{linhas.length ? 'Nenhuma conversa nesse filtro.' : 'Nenhuma conversa ainda.'}</div>}
-            {visiveis.map((c) => {
-              const [rotulo, tom] = DESFECHO[c.ultimo_desfecho] || ['Em andamento', 'laranja']
+            {visiveis.map((c, i) => {
+              const [rotulo, tom] = (c.ultimo_desfecho && DESFECHO[c.ultimo_desfecho]) || ['Em andamento', 'laranja']
               return (
-                <button key={c.telefone} className={`conv-item ${c.telefone === sel ? 'ativa' : ''}`} onClick={() => setSel(c.telefone)} onMouseEnter={() => preCarregarConversa(c.telefone)} onFocus={() => preCarregarConversa(c.telefone)}>
+                <button key={c.telefone ?? `sem-numero-${i}`} className={`conv-item ${c.telefone === sel ? 'ativa' : ''}`} onClick={() => setSel(c.telefone)} onMouseEnter={() => preCarregarConversa(c.telefone)} onFocus={() => preCarregarConversa(c.telefone)}>
                   <span className="conv-avatar" aria-hidden="true">{iniciaisNome(c.nome_wpp)}</span>
                   <span className="conv-item-corpo">
                     <span className="conv-linha"><b>{c.nome_wpp || mascara(c.telefone)}</b><em>{quando(c.ultima_msg_em)}</em></span>

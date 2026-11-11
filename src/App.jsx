@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard'
 import NovaSenha from './NovaSenha'
 import { Foto, nomeExibicao } from './components/Foto'
 import { Esqueleto } from './components/Ui'
+import { ErroTela, telaComRecarga } from './components/ErroTela'
 import { Marca } from './components/Marca'
 import { useTema } from './lib/tema'
 import { useGaveta } from './lib/gaveta'
@@ -23,12 +24,14 @@ const TELAS = {
   clientes: () => import('./pages/Clientes'),
   perfil: () => import('./pages/Perfil'),
 }
-const Conversas = lazy(TELAS.conversas)
-const Metricas = lazy(TELAS.metricas)
-const Pix = lazy(TELAS.pix)
-const Followup = lazy(TELAS.followup)
-const Clientes = lazy(TELAS.clientes)
-const Perfil = lazy(TELAS.perfil)
+const Conversas = lazy(telaComRecarga(TELAS.conversas))
+const Metricas = lazy(telaComRecarga(TELAS.metricas))
+const Pix = lazy(telaComRecarga(TELAS.pix))
+const Followup = lazy(telaComRecarga(TELAS.followup))
+const Clientes = lazy(telaComRecarga(TELAS.clientes))
+const Perfil = lazy(telaComRecarga(TELAS.perfil))
+// pré-carga em segundo plano: se falhar, a tela tenta de novo quando for aberta
+const baixarTela = (id) => TELAS[id]?.().catch(() => {})
 const quandoOcioso = (f) => (window.requestIdleCallback ? window.requestIdleCallback(f, { timeout: 2000 }) : setTimeout(f, 300))
 import { useRota, endereco, cliqueInterno } from './lib/rota'
 
@@ -120,7 +123,7 @@ export default function App() {
   useEffect(() => {
     if (!clienteAtual) return
     quandoOcioso(() => {
-      Object.values(TELAS).forEach((f) => f())
+      Object.keys(TELAS).forEach(baixarTela)
       ;['dashboard', 'conversas', 'metricas', 'pix', 'followup', 'clientes'].forEach((a) => preCarregar(a, clienteAtual, periodo, ehAdmin))
     })
   }, [clienteAtual?.id, periodo.de, periodo.ate, ehAdmin]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -214,7 +217,7 @@ export default function App() {
         <nav className="nav" aria-label="Principal">
           {abas.map((a) => (
             <a key={a.id} href={endereco(a.id, cliente?.slug)} className={aba === a.id ? 'ativa' : ''} aria-current={aba === a.id ? 'page' : undefined}
-              onMouseEnter={() => { TELAS[a.id]?.(); preCarregar(a.id, cliente, periodo, admin) }}
+              onMouseEnter={() => { baixarTela(a.id); preCarregar(a.id, cliente, periodo, admin) }}
               onClick={(e) => { if (cliqueInterno(e)) { e.preventDefault(); irPara(a.id) } }}>
               {ICONES[a.id]}{a.nome}
             </a>
@@ -232,6 +235,7 @@ export default function App() {
         {!erro && !perfil && <Esqueleto />}
         {perfil && !cliente && <div className="vazio">Nenhum cliente vinculado ao seu usuário.</div>}
         {perfil && cliente && (
+          <ErroTela key={`${aba}-${cliente.id}`}>
           <Suspense fallback={<Esqueleto />}>
             {aba === 'dashboard' && <Dashboard cliente={cliente} irPara={irPara} />}
             {aba === 'conversas' && <Conversas cliente={cliente} />}
@@ -249,6 +253,7 @@ export default function App() {
                 abrir={(id) => escolherCliente(id, 'dashboard')} />
             )}
           </Suspense>
+          </ErroTela>
         )}
       </main>
     </div>
